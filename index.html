@@ -1,11 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEHIP · Iniciar sesión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/estilos.css">
 </head>
-<body>
-    
+<body class="pagina-login">
+
+  <!-- Iconos de trazo lineal reutilizables -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="i-triangulo" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+    <symbol id="i-candado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3"/></symbol>
+  </svg>
+
+  <main class="login">
+    <div class="tarjeta">
+      <div class="marca">
+        <div class="logo">SH</div>
+        <div>
+          <div class="marca-nombre">SEHIP</div>
+          <div class="marca-descripcion">Sistema de Evaluación Hidrológica e Impacto Pluvial</div>
+        </div>
+      </div>
+
+      <h1>Iniciar sesión</h1>
+      <p class="subtitulo">Módulo Web de Simulación Hidrológica para ingenieros civiles.</p>
+
+      <!-- novalidate: las reglas de formato se validan en js/validaciones.js con los mensajes oficiales -->
+      <form id="form-login" class="formulario" novalidate>
+        <div class="campo">
+          <label for="correo">Correo electrónico</label>
+          <input type="email" id="correo" name="correo" placeholder="usuario@dominio.com" autocomplete="username">
+        </div>
+        <div class="campo">
+          <label for="contrasena">Contraseña</label>
+          <input type="password" id="contrasena" name="contrasena" placeholder="8 a 16 caracteres" autocomplete="current-password">
+        </div>
+        <button type="submit" class="boton boton-ancho" id="boton-login">
+          <svg class="icono"><use href="#i-candado"/></svg>
+          Iniciar sesión
+        </button>
+      </form>
+
+      <div id="mensaje-login" class="alerta alerta-error oculto" role="alert">
+        <svg class="icono"><use href="#i-triangulo"/></svg>
+        <span></span>
+      </div>
+    </div>
+    <p class="pie-login">SEHIP · Equipo 3 · Versión 1.0</p>
+  </main>
+
+  <script src="./js/datos.js"></script>
+  <script src="./js/validaciones.js"></script>
+  <script src="./js/proyectos.js"></script>
+  <script src="./js/login.js"></script>
 </body>
 </html>
