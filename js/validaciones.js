@@ -28,6 +28,7 @@ const MENSAJES = {
   caudalFaltante: 'Debe calcular el caudal pico antes de simular la mitigación',
   obraSinUbicacion: 'Coloque la obra de mitigación en el mapa dentro de la zona afectada',
   obraFueraDeZona: 'La obra de mitigación debe colocarse dentro de la zona afectada',
+  ubicacionActualizada: 'Ubicación del proyecto actualizada',
   cpNoRegistrado: 'La tabla maestra normativa no contiene un coeficiente vigente para superficie permeable (Cp)',
   dentroDeCapacidad: 'El caudal ajustado está dentro de la capacidad de descarga permitida',
   excedeCapacidad: 'El caudal ajustado excede la capacidad de descarga permitida',
@@ -225,6 +226,26 @@ function radioAfectacion(superficieM2, caudal, caudalPermitido) {
   return redondear(Math.sqrt((superficieM2 + areaEncharcada) / Math.PI), 1);
 }
 
+// Radio (m) de un círculo con la misma área que el predio; representa la huella de la construcción.
+function radioPredio(superficieM2) {
+  return redondear(Math.sqrt(superficieM2 / Math.PI), 1);
+}
+
+// Área (m²) de la zona afectada: predio más superficie encharcada.
+function areaZonaAfectada(superficieM2, caudal, caudalPermitido) {
+  return redondear(superficieM2 + volumenExcedente(caudal, caudalPermitido) / LAMINA_ENCHARCAMIENTO, 2);
+}
+
+// Una simulación guardada solo es vigente si se hizo con el caudal pico, la descarga permitida y la
+// ubicación actuales del proyecto; si el proyecto cambió, queda en el historial como desactualizada.
+function simulacionVigente(simulacion, proyecto, caudalPermitido) {
+  if (!simulacion || proyecto.caudalPico == null || simulacion.caudalPico == null) return false;
+  const distanciaActual = distanciaMetros(proyecto.latitud, proyecto.longitud, simulacion.latitud, simulacion.longitud);
+  return simulacion.caudalPico === proyecto.caudalPico
+    && simulacion.caudalPermitido === caudalPermitido
+    && Math.abs(distanciaActual - simulacion.distancia) <= 1;
+}
+
 // Eficiencia (0.5 a 1) de una obra a cierta distancia del proyecto; null si queda fuera de la zona.
 function eficienciaPorUbicacion(distancia, radio) {
   if (!(radio > 0) || distancia > radio) return null;
@@ -254,6 +275,7 @@ if (typeof module !== 'undefined') {
     PERIODOS_RETORNO, TIPOS_OBRA, MENSAJES, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
     coordenadasValidas, limitesSemaforo, evaluarSemaforo, capacidadNecesaria,
     LAMINA_ENCHARCAMIENTO, distanciaMetros, volumenExcedente, radioAfectacion, eficienciaPorUbicacion,
+    radioPredio, areaZonaAfectada, simulacionVigente,
     redondear, leerCantidad, credencialesConFormatoValido, nombreProyectoValido,
     validarSuperficies, calcularCoeficiente, periodoValido, validarParametrosCaudal,
     calcularCaudalPico, tipoObraValido, leerCapacidad, simularMitigacion, datosCompletosParaReporte

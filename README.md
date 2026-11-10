@@ -70,27 +70,27 @@ toma de la alcaldía donde está el punto.
 
 ## Simulación en el mapa
 
-El mapa está siempre visible a la derecha, en todas las pestañas: ahí se ve la simulación.
+El mapa está siempre visible a la derecha y muestra **un solo proyecto a la vez**.
 
-1. **Proyectos:** clic en el mapa para colocar el punto donde se construirá el proyecto.
-2. **Cálculo:** al calcular el caudal pico aparece un **círculo de zona afectada** alrededor del punto, del color
-   del semáforo. Radio = √((A + Vexcedente / 0.05) / π), donde A es la superficie del predio (m²) y
-   Vexcedente = (Qpico − Qpermitido) × 3,600 s, el volumen que no puede descargarse en la tormenta de diseño de
-   1 hora, repartido con una lámina de encharcamiento de 5 cm. Más impermeable o más lluvia → círculo más grande.
-3. **Mitigación:** clic **dentro del círculo** para colocar la obra. Su eficiencia depende de dónde se coloque:
-   100 % junto al proyecto y 50 % en el borde de la zona (Retención = capacidad / 3,600 × eficiencia). Al simular,
-   el círculo se recalcula: el contorno punteado es la zona sin obra y el círculo relleno es la zona con la obra,
-   con el nuevo color del semáforo. Fuera de la zona aparece “La obra de mitigación debe colocarse dentro de la
-   zona afectada”.
+1. **Proyectos:** clic en el mapa para colocar el punto del proyecto nuevo (el pin se puede arrastrar). Con un
+   proyecto activo, arrastrar el pin o hacer clic en otro punto **mueve el proyecto**: la alcaldía, la intensidad
+   y el caudal se actualizan solos. El botón **Nuevo proyecto** libera el mapa para registrar otro.
+2. **Cálculo:** al calcular el caudal pico aparecen la huella del predio (gris) y la **zona afectada** (color del
+   semáforo). Cada cambio de superficies, intensidad o ubicación recalcula y anima el círculo.
+3. **Mitigación:** clic dentro de la zona afectada para colocar la obra. Al escribir la capacidad se muestra una
+   **vista previa** (zona, semáforo y panel del mapa) sin guardar; **Simular mitigación** la guarda. La zona sin
+   obra queda como contorno punteado para comparar. Si el proyecto cambia después, la simulación queda como
+   “Desactualizada”.
+4. El panel dentro del mapa resume caudal pico, descarga permitida, % del semáforo, radios y reducción del área.
 
 | Ejemplo (Ap = 6000, Ai = 14000, 10 años) | Caudal (m³/s) | Radio de la zona | Semáforo |
 |---|---|---|---|
-| Sin obra | 0.249 | 102.1 m | 🔴 Riesgo alto |
-| Tanque de Tormenta 700 m³ a 32 m del proyecto (eficiencia 84 %) | 0.085 | 81.6 m | 🟡 Riesgo medio |
-| Pozo de Infiltración 700 m³ junto al proyecto (eficiencia 98 %) | 0.059 | 79.8 m | 🟢 Riesgo bajo |
+| Sin obra | 0.249 | 102.1 m | 🔴 Riesgo alto (346 %) |
+| Tanque de Tormenta 700 m³ a 51 m del proyecto (eficiencia 75 %) | 0.103 | 84.1 m | 🟡 Riesgo medio (143 %) |
+| La misma obra junto al proyecto (eficiencia ≈ 100 %) | 0.055 | 79.8 m | 🟢 Riesgo bajo (76 %) |
 
-La lámina (`LAMINA_ENCHARCAMIENTO`) y la eficiencia en el borde (`EFICIENCIA_EN_BORDE`) están en
-`js/validaciones.js` y pueden ajustarse.
+**Documentación:** `docs/MANUAL_DESARROLLADOR.md` (cómo funciona cada parte) y `docs/FUNDAMENTO_CALCULOS.md`
+(fundamento de cada fórmula).
 
 ## Semáforo de impacto pluvial
 
@@ -165,7 +165,7 @@ Con los valores de `js/datos.js` (Cp = 0.20, Ci = 0.90, intensidad de 10 años =
 ## Notas
 
 - Los datos se conservan al recargar, pero solo en ese navegador. Para borrarlos: F12 → Application →
-  Local Storage → eliminar `sehip_proyectos_v2`, `sehip_simulaciones_v2` y `sehip_reportes_v2`.
+  Local Storage → eliminar `sehip_proyectos_v3`, `sehip_simulaciones_v3` y `sehip_reportes_v3`.
 - Los valores de Cp, Ci e intensidades de `js/datos.js` son ilustrativos y deben sustituirse por los oficiales.
 - Límites de alcaldías: INEGI, Marco Geoestadístico 2022, vía [PhantomInsights/mexico-geojson](https://github.com/PhantomInsights/mexico-geojson) (simplificados).
   Mapas base: © Esri, © OpenStreetMap.

@@ -2,9 +2,9 @@
 // Los proyectos, simulaciones y reportes se guardan en el localStorage del navegador.
 // Cada operación devuelve { ok: false, error } o { ok: true, proyecto, simulacion, simulaciones, reportes, mensaje }.
 
-const CLAVE_PROYECTOS = 'sehip_proyectos_v2';
-const CLAVE_SIMULACIONES = 'sehip_simulaciones_v2';
-const CLAVE_REPORTES = 'sehip_reportes_v2';
+const CLAVE_PROYECTOS = 'sehip_proyectos_v3';
+const CLAVE_SIMULACIONES = 'sehip_simulaciones_v3';
+const CLAVE_REPORTES = 'sehip_reportes_v3';
 const CLAVE_SESION = 'sehip_sesion';
 const PROYECTOS_POR_PAGINA = 10;
 
@@ -130,10 +130,21 @@ function respuestaProyecto(proyecto, mensaje = '') {
   };
 }
 
-// Borra el caudal pico cuando cambian los datos de los que depende.
-function reiniciarCaudal(proyecto) {
-  proyecto.caudalPico = null;
-  proyecto.estado = 'En proceso';
+// Cuando cambian los datos de un proyecto ya calculado (superficies, intensidad o ubicación), el caudal
+// pico se recalcula al momento para que la simulación del mapa se actualice; si faltan datos, se borra.
+function actualizarCaudal(proyecto) {
+  const error = validarParametrosCaudal(proyecto.coeficiente, proyecto.intensidad, proyecto.superficieTotal);
+  if (proyecto.estado === 'Calculado' && !error) {
+    proyecto.caudalPico = calcularCaudalPico(proyecto.coeficiente, proyecto.intensidad, proyecto.superficieTotal);
+  } else {
+    proyecto.caudalPico = null;
+    proyecto.estado = 'En proceso';
+  }
+}
+
+// Texto que se agrega al mensaje cuando el caudal pico se recalculó automáticamente.
+function textoRecalculo(proyecto) {
+  return proyecto.caudalPico != null ? ` · Caudal pico recalculado: ${proyecto.caudalPico.toFixed(3)} m³/s` : '';
 }
 
 // ---------- RF-WEB-02: registrar proyecto ----------
@@ -180,6 +191,35 @@ function registrarProyecto(nombreTexto, idAlcaldiaTexto, latitudTexto, longitudT
   guardarLista(CLAVE_PROYECTOS, proyectos);
 
   return respuestaProyecto(proyecto, `Proyecto registrado correctamente con el identificador ${proyecto.id}`);
+}
+
+// ---------- Mover el punto de un proyecto ----------
+// El punto puede cambiar dentro de la CDMX; la alcaldía y la intensidad se toman de la nueva ubicación.
+function moverProyecto(idProyecto, latitudTexto, longitudTexto) {
+  const proyecto = buscarProyectoPropio(idProyecto);
+  if (!proyecto) return { ok: false, error: MENSAJES.proyectoNoEncontrado };
+
+  const nombreNuevaAlcaldia = coordenadasValidas(latitudTexto, longitudTexto)
+    ? alcaldiaEnPunto(latitudTexto, longitudTexto)
+    : null;
+  if (!nombreNuevaAlcaldia) return { ok: false, error: MENSAJES.ubicacionFuera };
+  const nuevaAlcaldia = ALCALDIAS.find((a) => a.nombre === nombreNuevaAlcaldia);
+
+  // Si el proyecto ya tiene período de retorno, la intensidad se consulta para la nueva alcaldía.
+  let intensidad = proyecto.intensidad;
+  if (proyecto.periodoRetorno != null) {
+    intensidad = INTENSIDADES[nuevaAlcaldia.id][proyecto.periodoRetorno];
+    if (intensidad == null) return { ok: false, error: MENSAJES.intensidadNoRegistrada };
+  }
+
+  proyecto.latitud = Number(Number(latitudTexto).toFixed(6));
+  proyecto.longitud = Number(Number(longitudTexto).toFixed(6));
+  proyecto.idAlcaldia = nuevaAlcaldia.id;
+  proyecto.intensidad = intensidad;
+  actualizarCaudal(proyecto);
+  actualizarProyecto(proyecto);
+
+  return respuestaProyecto(proyecto, `${MENSAJES.ubicacionActualizada}: ${nuevaAlcaldia.nombre}${textoRecalculo(proyecto)}`);
 }
 
 // ---------- RF-WEB-03: historial y consulta ----------
@@ -238,11 +278,11 @@ function calcularCoeficienteProyecto(idProyecto, permeable, impermeable) {
     proyecto.superficieImpermeable = ai;
     proyecto.superficieTotal = total;
     proyecto.coeficiente = coeficiente;
-    reiniciarCaudal(proyecto);
+    actualizarCaudal(proyecto);
     actualizarProyecto(proyecto);
   }
 
-  return respuestaProyecto(proyecto, `Coeficiente de escurrimiento calculado: C = ${coeficiente.toFixed(2)}`);
+  return respuestaProyecto(proyecto, `Coeficiente de escurrimiento calculado: C = ${coeficiente.toFixed(2)}${textoRecalculo(proyecto)}`);
 }
 
 // ---------- RF-WEB-05: intensidad de lluvia ----------
@@ -264,11 +304,11 @@ function consultarIntensidadProyecto(idProyecto, periodoTexto) {
   if (proyecto.intensidad !== intensidad || proyecto.periodoRetorno !== periodo) {
     proyecto.intensidad = intensidad;
     proyecto.periodoRetorno = periodo;
-    reiniciarCaudal(proyecto);
+    actualizarCaudal(proyecto);
     actualizarProyecto(proyecto);
   }
 
-  return respuestaProyecto(proyecto, `Intensidad de lluvia para ${periodo} años: ${intensidad.toFixed(2)} mm/h`);
+  return respuestaProyecto(proyecto, `Intensidad de lluvia para ${periodo} años: ${intensidad.toFixed(2)} mm/h${textoRecalculo(proyecto)}`);
 }
 
 // ---------- RF-WEB-06: caudal pico ----------
@@ -325,6 +365,7 @@ function simularMitigacionProyecto(idProyecto, tipoObra, capacidadTexto, latitud
     idProyecto: proyecto.id,
     tipoObra,
     capacidad,
+    caudalPico: proyecto.caudalPico,
     latitud: Number(Number(latitudObra).toFixed(6)),
     longitud: Number(Number(longitudObra).toFixed(6)),
     distancia,

@@ -649,3 +649,126 @@ body.hay-proyecto .sin-proyecto { display: none !important; }
   .zona-mapa .mapa { height: 360px; min-height: 0; }
 }
 .zona-pestanas .pestana { padding: 12px 12px; font-size: 14px; }
+
+/* ---------- Simulador: elementos del mapa ---------- */
+.pin-proyecto, .icono-obra { background: none; border: none; }
+.pin {
+  width: 36px;
+  height: 36px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--color-pin);
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 3px 10px rgba(11, 57, 84, 0.45);
+  display: grid;
+  place-items: center;
+  transition: background 0.3s;
+}
+.pin svg {
+  width: 18px;
+  height: 18px;
+  transform: rotate(45deg);
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.leaflet-marker-draggable .pin { cursor: grab; }
+.pin-etiqueta {
+  position: absolute;
+  left: 42px;
+  top: 6px;
+  white-space: nowrap;
+  background: #FFFFFF;
+  color: var(--primario);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(11, 57, 84, 0.2);
+  pointer-events: none;
+}
+.obra {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--color-obra);
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+}
+.obra svg { width: 18px; height: 18px; fill: none; stroke: #FFFFFF; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.obra-previa {
+  background: #FFFFFF;
+  border: 2px dashed var(--color-obra);
+  animation: latido 1.4s ease-in-out infinite;
+}
+.obra-previa svg { stroke: var(--color-obra); }
+@keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+.leaflet-tooltip.etiqueta-mapa, .leaflet-tooltip.etiqueta-linea {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--primario);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  box-shadow: var(--sombra);
+}
+.leaflet-tooltip.etiqueta-linea { color: #6A1B9A; font-weight: 500; padding: 2px 6px; }
+.leaflet-tooltip.etiqueta-linea::before { display: none; }
+
+/* Panel de datos de la simulación dentro del mapa */
+.panel-mapa {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(11, 57, 84, 0.25);
+  padding: 12px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  color: var(--primario);
+  min-width: 230px;
+  max-width: 290px;
+}
+.panel-mapa.oculto { display: none; }
+.panel-mapa h4 { margin: 0 0 6px; font-family: 'Montserrat', sans-serif; font-size: 13px; overflow-wrap: anywhere; }
+.panel-mapa .fila { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.panel-mapa .fila span:first-child { color: var(--texto-suave); }
+.panel-mapa .fila b { font-variant-numeric: tabular-nums; }
+.panel-mapa .separador { border-top: 1px solid var(--borde); margin: 8px 0 6px; }
+.panel-mapa .etiqueta-nivel {
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 6px;
+}
+.panel-mapa .etiqueta-nivel::before {
+  content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--color-nivel);
+}
+.panel-mapa .barra-riesgo { height: 6px; border-radius: 3px; background: var(--borde); overflow: hidden; margin: 2px 0 6px; }
+.panel-mapa .barra-riesgo i { display: block; height: 100%; background: var(--color-nivel); transition: width 0.5s; }
+.panel-mapa .nota { color: var(--texto-suave); font-size: 11.5px; margin-top: 4px; }
+.panel-mapa .mejora { color: var(--semaforo-verde); font-weight: 600; }
+
+/* Leyenda */
+.leyenda i { display: inline-block; }
+.ley-pin { width: 12px; height: 12px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--primario); }
+.ley-predio { width: 14px; height: 14px; border-radius: 50%; border: 1.5px dotted #4A6272; background: rgba(74, 98, 114, 0.15); }
+.ley-zona { width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(90deg, var(--semaforo-verde) 33%, var(--semaforo-amarillo) 33% 66%, var(--semaforo-rojo) 66%); opacity: 0.7; }
+.ley-antes { width: 14px; height: 14px; border-radius: 50%; border: 2px dashed var(--semaforo-rojo); }
+.ley-obra { width: 12px; height: 12px; border-radius: 3px; background: #6A1B9A; }
+
+/* Vista previa de la obra */
+.vista-previa {
+  border: 1.5px dashed #6A1B9A;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: #F7F0FA;
+}
+.vista-previa strong { color: #6A1B9A; }
+.estado-desactualizada { color: var(--texto-suave); font-style: italic; font-size: 12px; }
+.fila-desactualizada td { opacity: 0.55; }
+.zona-pestanas .metricas { grid-template-columns: 1fr 1fr; }
+@media (max-width: 600px) {
+  .panel-mapa { min-width: 0; max-width: 200px; font-size: 11.5px; padding: 8px 10px; }
+  .panel-mapa .fila:nth-of-type(n+4) { display: none; }
+}

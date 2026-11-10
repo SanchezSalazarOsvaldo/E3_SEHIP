@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./lib/leaflet/leaflet.css">
-  <link rel="stylesheet" href="./css/estilos.css">
+  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
 
@@ -115,7 +115,28 @@
     <section class="panel-pestana" id="pestana-proyectos">
       <div>
         <div class="columna">
-          <section class="tarjeta">
+          <!-- Proyecto activo: su punto se mueve arrastrando el pin o con un clic en el mapa -->
+          <section class="tarjeta con-proyecto">
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-pin"/></svg>
+                <h2>Ubicación del proyecto activo</h2>
+              </div>
+            </div>
+            <div class="caja-ubicacion lista" id="ubicacion-activa">
+              <svg class="icono"><use href="#i-pin"/></svg>
+              <span></span>
+            </div>
+            <p class="ayuda">Arrastre el pin o haga clic en otro punto del mapa para mover el proyecto. La alcaldía,
+              la intensidad de lluvia y el caudal pico se actualizan con la nueva ubicación.</p>
+            <div id="msg-ubicacion"></div>
+            <button type="button" class="boton boton-contorno boton-ancho" id="boton-nuevo-proyecto">
+              <svg class="icono"><use href="#i-mas"/></svg>
+              Nuevo proyecto
+            </button>
+          </section>
+
+          <section class="tarjeta sin-proyecto">
             <div class="tarjeta-encabezado">
               <div class="tarjeta-titulo">
                 <svg class="icono"><use href="#i-mas"/></svg>
@@ -197,6 +218,15 @@
             <div class="metrica">
               <div class="metrica-etiqueta">Caudal pico</div>
               <div class="metrica-valor" id="m-caudal"></div>
+            </div>
+            <div class="metrica">
+              <div class="metrica-etiqueta">Descarga permitida</div>
+              <div class="metrica-valor" id="m-permitido"></div>
+            </div>
+            <div class="metrica">
+              <div class="metrica-etiqueta">Zona afectada</div>
+              <div class="metrica-valor" id="m-zona"></div>
+              <div class="metrica-detalle" id="m-zona-detalle"></div>
             </div>
           </div>
         </div>
@@ -329,6 +359,7 @@
               </div>
               <span class="ayuda">Eficiencia de la obra: 100 % junto al proyecto y 50 % en el borde de la zona afectada.</span>
             </div>
+            <div id="vista-previa"></div>
             <button type="submit" class="boton boton-ancho">Simular mitigación</button>
           </form>
           <div id="msg-mitigacion"></div>
@@ -349,7 +380,7 @@
               <div id="semaforo-antes"></div>
             </div>
             <div>
-              <div class="comparativo-titulo">Con la última obra simulada</div>
+              <div class="comparativo-titulo" id="titulo-despues">Con la obra</div>
               <div id="semaforo-despues"></div>
             </div>
           </div>
@@ -435,13 +466,11 @@
           <div id="mapa" class="mapa"></div>
           <div class="mapa-instruccion" id="mapa-instruccion"></div>
           <div class="leyenda">
-            <span><i class="punto punto-nuevo"></i>Nuevo proyecto</span>
-            <span><i class="punto punto-ninguno"></i>Proyecto activo sin calcular</span>
-            <span><i class="punto punto-verde"></i>Riesgo bajo</span>
-            <span><i class="punto punto-amarillo"></i>Riesgo medio</span>
-            <span><i class="punto punto-rojo"></i>Riesgo alto</span>
-            <span><i class="punto punto-obra"></i>Obra de mitigación</span>
-            <span><i class="muestra muestra-zona"></i>Zona afectada sin obra</span>
+            <span><i class="ley-pin"></i>Proyecto (arrastrable)</span>
+            <span><i class="ley-predio"></i>Huella del predio</span>
+            <span><i class="ley-zona"></i>Zona afectada (color del semáforo)</span>
+            <span><i class="ley-antes"></i>Zona sin obra</span>
+            <span><i class="ley-obra"></i>Obra de mitigación</span>
           </div>
         </section>
     </aside>
@@ -453,15 +482,15 @@
     <span></span>
   </div>
 
-  <script src="./lib/leaflet/leaflet.js"></script>
-  <script src="./lib/jspdf.umd.min.js"></script>
-  <script src="./js/config-mapa.js"></script>
-  <script src="./js/limites-alcaldias.js"></script>
-  <script src="./js/datos.js"></script>
-  <script src="./js/validaciones.js"></script>
-  <script src="./js/proyectos.js"></script>
-  <script src="./js/mapa.js"></script>
-  <script src="./js/reporte.js"></script>
-  <script src="./js/panel.js"></script>
+  <script src="lib/leaflet/leaflet.js"></script>
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="js/config-mapa.js"></script>
+  <script src="js/limites-alcaldias.js"></script>
+  <script src="js/datos.js"></script>
+  <script src="js/validaciones.js"></script>
+  <script src="js/proyectos.js"></script>
+  <script src="js/mapa.js"></script>
+  <script src="js/reporte.js"></script>
+  <script src="js/panel.js"></script>
 </body>
 </html>

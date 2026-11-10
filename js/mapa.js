@@ -1,51 +1,90 @@
-// Mapa interactivo de la CDMX con Leaflet (pestaña Proyectos).
-// - Clic en el mapa: coloca el punto de ubicación del nuevo proyecto y detecta su alcaldía.
-// - El proyecto activo se muestra con un círculo de zona afectada del color de su semáforo.
-// - La obra de mitigación se coloca dentro de esa zona y el círculo se recalcula con su efecto.
+// Mapa de simulación con Leaflet. Siempre está visible y muestra un solo proyecto a la vez:
+// - Pin del proyecto (se puede arrastrar para cambiar su ubicación).
+// - Huella del predio: círculo gris con el área de la construcción.
+// - Zona afectada: círculo del color del semáforo cuyo radio crece con el volumen que no puede descargarse.
+// - Zona sin obra: contorno punteado que permite comparar antes y después de la mitigación.
+// - Obra de mitigación: icono según el tipo, unido al proyecto con una línea que indica distancia y eficiencia.
 
 const COLORES_SEMAFORO = {
   verde: '#3F6B22',
   amarillo: '#E0A800',
   rojo: '#C62828',
-  ninguno: '#006B78'
+  ninguno: '#006B78',
+  nuevo: '#0B3954'
 };
+const COLOR_OBRA = '#6A1B9A';
 
-const ESTILOS_MAPA = {
-  base: { color: '#006B78', weight: 1.5, fillColor: '#006B78', fillOpacity: 0.08 },
-  seleccion: { color: '#0B3954', weight: 3, fillColor: '#0B3954', fillOpacity: 0.25 },
-  activa: { color: '#3F6B22', weight: 3, fillColor: '#3F6B22', fillOpacity: 0.18 },
-  encima: { weight: 3, fillOpacity: 0.2 }
+const ICONOS_OBRA = {
+  'Pozo de Infiltración': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/>',
+  'Tanque de Tormenta': '<ellipse cx="12" cy="6.5" rx="6.5" ry="2.5"/><path d="M5.5 6.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/>',
+  'Jardín de Lluvia': '<path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19 13 11"/>'
 };
 
 const estadoMapa = {
   mapa: null,
-  capas: {},            // capa de cada alcaldía, por nombre
-  seleccionada: null,   // alcaldía del punto nuevo
-  activa: null,         // alcaldía del proyecto activo
-  puntoNuevo: null,     // marcador del punto del proyecto por registrar
-  puntoActivo: null,    // marcador del proyecto activo
-  zonaActual: null,     // círculo de zona afectada actual (con la última obra)
-  zonaAntes: null,      // círculo de zona afectada sin obra (contorno punteado)
-  obra: null,           // marcador de la última obra simulada
-  obraTemporal: null,   // marcador de la obra por simular
+  capas: {},          // polígono de cada alcaldía
+  resaltada: null,    // alcaldía del punto mostrado
+  pin: null,          // marcador del proyecto (nuevo o activo)
+  predio: null,       // huella del predio
+  zonaAntes: null,    // zona afectada sin obra (punteada)
+  zonaActual: null,   // zona afectada actual (rellena)
+  obra: null,         // marcador de la obra
+  linea: null,        // línea proyecto-obra
+  panel: null,        // panel de datos de la simulación
   capaBase: null,
-  indiceProveedor: 0
+  alArrastrarPin: null
 };
 
-function estiloAlcaldia(nombre) {
-  if (nombre === estadoMapa.seleccionada) return ESTILOS_MAPA.seleccion;
-  if (nombre === estadoMapa.activa) return ESTILOS_MAPA.activa;
-  return ESTILOS_MAPA.base;
+// ---------- Utilidades ----------
+
+function escaparMapa(texto) {
+  const div = document.createElement('div');
+  div.textContent = texto ?? '';
+  return div.innerHTML;
 }
 
-function repintarAlcaldias() {
-  Object.entries(estadoMapa.capas).forEach(([nombre, capa]) => capa.setStyle(estiloAlcaldia(nombre)));
+function quitarCapa(nombre) {
+  if (estadoMapa[nombre]) {
+    estadoMapa.mapa.removeLayer(estadoMapa[nombre]);
+    estadoMapa[nombre] = null;
+  }
+}
+
+// Cambia el radio de un círculo de forma gradual (0.5 s) para que el cambio de la simulación se note.
+function animarRadio(circulo, radioFinal) {
+  const radioInicial = circulo.getRadius();
+  if (Math.abs(radioInicial - radioFinal) < 0.1) return;
+  const inicio = performance.now();
+  const duracion = 500;
+  const paso = (ahora) => {
+    const t = Math.min(1, (ahora - inicio) / duracion);
+    const suave = 1 - (1 - t) ** 3;
+    circulo.setRadius(radioInicial + (radioFinal - radioInicial) * suave);
+    if (t < 1) requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+
+// Crea un círculo o, si ya existe, lo mueve, lo anima al nuevo radio y actualiza su estilo.
+function circuloSimulacion(nombre, centro, radio, estilo) {
+  if (!radio) {
+    quitarCapa(nombre);
+    return;
+  }
+  if (!estadoMapa[nombre]) {
+    estadoMapa[nombre] = L.circle(centro, { radius: radio, interactive: false, ...estilo }).addTo(estadoMapa.mapa);
+    return;
+  }
+  estadoMapa[nombre].setLatLng(centro);
+  estadoMapa[nombre].setStyle(estilo);
+  animarRadio(estadoMapa[nombre], radio);
 }
 
 // ---------- Mapa base con cambio automático de proveedor ----------
 
-// Crea la capa de un proveedor. Si fallan varias teselas sin que ninguna cargue, pasa al siguiente.
-function crearCapaBase(indice) {
+const capasBase = [];
+function obtenerCapaBase(indice) {
+  if (capasBase[indice]) return capasBase[indice];
   const proveedor = PROVEEDORES_MAPA[indice];
   const capa = L.tileLayer(proveedor.url, proveedor.opciones);
   let errores = 0;
@@ -60,175 +99,207 @@ function crearCapaBase(indice) {
       estadoMapa.capaBase = obtenerCapaBase(siguiente).addTo(estadoMapa.mapa);
     }
   });
+  capasBase[indice] = capa;
   return capa;
 }
 
-const capasBase = [];
-function obtenerCapaBase(indice) {
-  if (!capasBase[indice]) capasBase[indice] = crearCapaBase(indice);
-  return capasBase[indice];
-}
+// ---------- Creación ----------
 
-// ---------- Creación del mapa ----------
-
-// alHacerClic(latitud, longitud, nombreAlcaldia) se ejecuta al hacer clic en el mapa;
-// nombreAlcaldia es null si el punto está fuera de la Ciudad de México.
-function iniciarMapa(idContenedor, alHacerClic) {
+// eventos.alHacerClic(lat, lng, alcaldia) y eventos.alArrastrarPin(lat, lng, alcaldia);
+// alcaldia es null cuando el punto queda fuera de la Ciudad de México.
+function iniciarMapa(idContenedor, eventos) {
   const mapa = L.map(idContenedor, { minZoom: 10, maxZoom: 18 });
   estadoMapa.mapa = mapa;
+  estadoMapa.alArrastrarPin = eventos.alArrastrarPin;
 
   estadoMapa.capaBase = obtenerCapaBase(0).addTo(mapa);
-
-  // Selector manual de mapa base (esquina superior derecha).
   const opcionesBase = {};
   PROVEEDORES_MAPA.forEach((proveedor, i) => { opcionesBase[proveedor.nombre] = obtenerCapaBase(i); });
-  L.control.layers(opcionesBase, null, { position: 'topright' }).addTo(mapa);
+  L.control.layers(opcionesBase, null, { position: 'bottomright' }).addTo(mapa);
   mapa.on('baselayerchange', (evento) => { estadoMapa.capaBase = evento.layer; });
 
   const capaGeo = L.geoJSON(LIMITES_ALCALDIAS, {
-    style: (feature) => estiloAlcaldia(feature.properties.nombre),
+    style: { color: '#006B78', weight: 1.2, fillColor: '#006B78', fillOpacity: 0.04 },
     onEachFeature: (feature, capa) => {
-      const nombre = feature.properties.nombre;
-      estadoMapa.capas[nombre] = capa;
-      capa.bindTooltip(nombre, { sticky: true, className: 'etiqueta-alcaldia' });
-      capa.on('mouseover', () => capa.setStyle(ESTILOS_MAPA.encima));
-      capa.on('mouseout', () => capa.setStyle(estiloAlcaldia(nombre)));
+      estadoMapa.capas[feature.properties.nombre] = capa;
+      capa.bindTooltip(feature.properties.nombre, { sticky: true, className: 'etiqueta-mapa' });
     }
   }).addTo(mapa);
 
-  // Un solo manejador para todo el mapa: dentro o fuera de la CDMX.
   mapa.on('click', (evento) => {
     const latitud = Number(evento.latlng.lat.toFixed(6));
     const longitud = Number(evento.latlng.lng.toFixed(6));
-    alHacerClic(latitud, longitud, alcaldiaEnPunto(latitud, longitud));
+    eventos.alHacerClic(latitud, longitud, alcaldiaEnPunto(latitud, longitud));
   });
+
+  // Panel de datos de la simulación (esquina superior derecha).
+  const Panel = L.Control.extend({
+    onAdd() {
+      const div = L.DomUtil.create('div', 'panel-mapa oculto');
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      return div;
+    }
+  });
+  estadoMapa.panel = new Panel({ position: 'topright' }).addTo(mapa);
 
   mapa.fitBounds(capaGeo.getBounds());
   mapa.setMaxBounds(capaGeo.getBounds().pad(0.3));
 }
 
-// ---------- Punto del nuevo proyecto ----------
-
-// Coloca (o mueve) el punto del proyecto por registrar y resalta su alcaldía.
-function colocarPuntoNuevo(latitud, longitud, nombreAlcaldia, centrar = false) {
-  if (!estadoMapa.puntoNuevo) {
-    estadoMapa.puntoNuevo = L.circleMarker([latitud, longitud], {
-      radius: 9, color: '#FFFFFF', weight: 3, fillColor: '#0B3954', fillOpacity: 1
-    }).addTo(estadoMapa.mapa);
-    estadoMapa.puntoNuevo.bindTooltip('Ubicación del nuevo proyecto', { direction: 'top', offset: [0, -8] });
-  } else {
-    estadoMapa.puntoNuevo.setLatLng([latitud, longitud]);
+function resaltarAlcaldia(nombre) {
+  if (estadoMapa.resaltada && estadoMapa.capas[estadoMapa.resaltada]) {
+    estadoMapa.capas[estadoMapa.resaltada].setStyle({ weight: 1.2, fillOpacity: 0.04, color: '#006B78' });
   }
-  estadoMapa.seleccionada = nombreAlcaldia;
-  repintarAlcaldias();
-  if (centrar) estadoMapa.mapa.flyTo([latitud, longitud], 12, { duration: 0.6 });
+  estadoMapa.resaltada = nombre || null;
+  if (nombre && estadoMapa.capas[nombre]) {
+    estadoMapa.capas[nombre].setStyle({ weight: 2.5, fillOpacity: 0.1, color: '#0B3954' });
+  }
 }
 
-function quitarPuntoNuevo() {
-  if (estadoMapa.puntoNuevo) {
-    estadoMapa.mapa.removeLayer(estadoMapa.puntoNuevo);
-    estadoMapa.puntoNuevo = null;
-  }
-  estadoMapa.seleccionada = null;
-  repintarAlcaldias();
-}
+// ---------- Pin del proyecto (uno solo a la vez) ----------
 
-// ---------- Proyecto activo ----------
-
-// Marca la ubicación del proyecto activo con el color de su semáforo (nivel: verde, amarillo, rojo o null).
-function marcarProyectoActivo(proyecto, nivel, centrar) {
-  estadoMapa.activa = proyecto.alcaldia;
-  repintarAlcaldias();
-  if (proyecto.latitud == null || proyecto.longitud == null) return;
-
-  const posicion = [proyecto.latitud, proyecto.longitud];
-  const color = COLORES_SEMAFORO[nivel] || COLORES_SEMAFORO.ninguno;
-  const texto = nivel ? NIVELES_SEMAFORO[nivel].etiqueta : 'Sin calcular';
-
-  if (!estadoMapa.puntoActivo) {
-    estadoMapa.puntoActivo = L.circleMarker(posicion, { radius: 11, color: '#FFFFFF', weight: 3, fillOpacity: 1 })
-      .addTo(estadoMapa.mapa);
-  }
-  estadoMapa.puntoActivo.setLatLng(posicion);
-  estadoMapa.puntoActivo.setStyle({ fillColor: color });
-  estadoMapa.puntoActivo.unbindTooltip();
-  estadoMapa.puntoActivo.bindTooltip(`<strong>${escaparMapa(proyecto.nombre)}</strong><br>${texto}`, {
-    permanent: true, direction: 'right', offset: [14, 0], className: 'etiqueta-alcaldia'
+function iconoPin(color, etiqueta) {
+  return L.divIcon({
+    className: 'pin-proyecto',
+    html: `<div class="pin" style="--color-pin:${color}">
+             <svg viewBox="0 0 24 24"><path d="M4 20V9.5l8-5.5 8 5.5V20"/><path d="M9.5 20v-5.5h5V20"/></svg>
+           </div>
+           ${etiqueta ? `<span class="pin-etiqueta">${escaparMapa(etiqueta)}</span>` : ''}`,
+    iconSize: [36, 46],
+    iconAnchor: [18, 46]
   });
-  estadoMapa.puntoActivo.bringToFront();
-  if (centrar) estadoMapa.mapa.flyTo(posicion, 16, { duration: 0.6 });
 }
 
-// ---------- Simulación en el mapa ----------
-
-function quitarCapa(nombre) {
-  if (estadoMapa[nombre]) {
-    estadoMapa.mapa.removeLayer(estadoMapa[nombre]);
-    estadoMapa[nombre] = null;
+// opciones = { color, etiqueta, arrastrable }
+function mostrarPin(latitud, longitud, opciones) {
+  const posicion = [latitud, longitud];
+  if (!estadoMapa.pin) {
+    estadoMapa.pin = L.marker(posicion, { draggable: true, autoPan: true, zIndexOffset: 1000 }).addTo(estadoMapa.mapa);
+    // Mientras se arrastra, los círculos acompañan al pin.
+    estadoMapa.pin.on('drag', (evento) => {
+      ['predio', 'zonaAntes', 'zonaActual'].forEach((nombre) => {
+        if (estadoMapa[nombre]) estadoMapa[nombre].setLatLng(evento.latlng);
+      });
+      if (estadoMapa.linea && estadoMapa.obra) estadoMapa.linea.setLatLngs([evento.latlng, estadoMapa.obra.getLatLng()]);
+    });
+    estadoMapa.pin.on('dragend', () => {
+      const { lat, lng } = estadoMapa.pin.getLatLng();
+      const latitud = Number(lat.toFixed(6));
+      const longitud = Number(lng.toFixed(6));
+      estadoMapa.alArrastrarPin(latitud, longitud, alcaldiaEnPunto(latitud, longitud));
+    });
   }
+  estadoMapa.pin.setLatLng(posicion);
+  estadoMapa.pin.setIcon(iconoPin(opciones.color, opciones.etiqueta));
+  if (opciones.arrastrable) estadoMapa.pin.dragging.enable();
+  else estadoMapa.pin.dragging.disable();
 }
 
-// Dibuja la zona afectada del proyecto activo:
-// datos = { proyecto, radioAntes, radioActual, nivelAntes, nivelActual, simulacion }.
-function pintarSimulacionMapa(datos) {
-  ['zonaActual', 'zonaAntes', 'obra'].forEach(quitarCapa);
-  const p = datos.proyecto;
-  if (p.latitud == null || !datos.radioActual) return;
-  const centro = [p.latitud, p.longitud];
+function quitarPin() {
+  quitarCapa('pin');
+}
 
-  if (datos.simulacion) {
-    estadoMapa.zonaAntes = L.circle(centro, {
-      radius: datos.radioAntes, color: COLORES_SEMAFORO[datos.nivelAntes], weight: 2,
-      dashArray: '6 6', fill: false, interactive: false
-    }).addTo(estadoMapa.mapa);
+function centrarEn(latitud, longitud, zoom = 16) {
+  estadoMapa.mapa.flyTo([latitud, longitud], zoom, { duration: 0.6 });
+}
+
+// ---------- Simulación ----------
+
+// datos = {
+//   centro: [lat, lng], radioPredio,
+//   zonaAntes: { radio, nivel } | null,   (contorno punteado: sin obra)
+//   zonaActual: { radio, nivel } | null,  (relleno: estado actual o vista previa)
+//   obra: { latitud, longitud, tipoObra, capacidad, eficiencia, distancia } | null,
+//   previa: true si la zona actual es una vista previa sin guardar,
+//   obraPrevia: true si la obra mostrada aún no se guarda
+// }
+function dibujarSimulacion(datos) {
+  const { centro } = datos;
+
+  circuloSimulacion('predio', centro, datos.radioPredio, {
+    color: '#4A6272', weight: 1.5, dashArray: '2 4', fillColor: '#4A6272', fillOpacity: 0.12
+  });
+
+  const antes = datos.zonaAntes;
+  circuloSimulacion('zonaAntes', centro, antes ? antes.radio : null, {
+    color: antes ? COLORES_SEMAFORO[antes.nivel] : '#000', weight: 2, dashArray: '8 6', fill: false
+  });
+
+  const actual = datos.zonaActual;
+  circuloSimulacion('zonaActual', centro, actual ? actual.radio : null, {
+    color: actual ? COLORES_SEMAFORO[actual.nivel] : '#000',
+    weight: datos.previa ? 2 : 2.5,
+    dashArray: datos.previa ? '4 4' : null,
+    fillColor: actual ? COLORES_SEMAFORO[actual.nivel] : '#000',
+    fillOpacity: datos.previa ? 0.18 : 0.28
+  });
+  if (estadoMapa.predio) estadoMapa.predio.bringToFront();
+
+  // Obra de mitigación y línea al proyecto
+  const o = datos.obra;
+  if (!o) {
+    quitarCapa('obra');
+    quitarCapa('linea');
+    return;
   }
-  estadoMapa.zonaActual = L.circle(centro, {
-    radius: datos.radioActual, color: COLORES_SEMAFORO[datos.nivelActual], weight: 2,
-    fillColor: COLORES_SEMAFORO[datos.nivelActual], fillOpacity: 0.3, interactive: false
-  }).addTo(estadoMapa.mapa);
-
-  const s = datos.simulacion;
-  if (s && s.latitud != null) {
-    estadoMapa.obra = L.circleMarker([s.latitud, s.longitud], {
-      radius: 8, color: '#FFFFFF', weight: 2, fillColor: '#6A1B9A', fillOpacity: 1
-    }).addTo(estadoMapa.mapa);
-    estadoMapa.obra.bindTooltip(
-      `<strong>${escaparMapa(s.tipoObra)}</strong><br>${s.capacidad} m³ · eficiencia ${Math.round(s.eficiencia * 100)} %`,
-      { direction: 'bottom', offset: [0, 8], className: 'etiqueta-alcaldia' }
-    );
-  }
-  if (estadoMapa.puntoActivo) estadoMapa.puntoActivo.bringToFront();
-}
-
-// Muestra la zona afectada completa en la vista del mapa.
-function encuadrarZona() {
-  const zona = estadoMapa.zonaAntes || estadoMapa.zonaActual;
-  if (zona) estadoMapa.mapa.flyToBounds(zona.getBounds(), { padding: [60, 60], maxZoom: 17, duration: 0.6 });
-}
-
-// Marcador de la obra que se va a simular (antes de pulsar "Simular mitigación").
-function colocarObraTemporal(latitud, longitud) {
-  if (!estadoMapa.obraTemporal) {
-    estadoMapa.obraTemporal = L.circleMarker([latitud, longitud], {
-      radius: 8, color: '#6A1B9A', weight: 3, fillColor: '#FFFFFF', fillOpacity: 1, dashArray: '3 3'
-    }).addTo(estadoMapa.mapa);
-    estadoMapa.obraTemporal.bindTooltip('Nueva obra', { direction: 'top', offset: [0, -8] });
+  const posicionObra = [o.latitud, o.longitud];
+  const icono = L.divIcon({
+    className: 'icono-obra',
+    html: `<div class="obra ${datos.obraPrevia ? 'obra-previa' : ''}" style="--color-obra:${COLOR_OBRA}">
+             <svg viewBox="0 0 24 24">${ICONOS_OBRA[o.tipoObra] || ICONOS_OBRA['Pozo de Infiltración']}</svg>
+           </div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+  });
+  if (!estadoMapa.obra) {
+    estadoMapa.obra = L.marker(posicionObra, { icon: icono, interactive: false, zIndexOffset: 500 }).addTo(estadoMapa.mapa);
   } else {
-    estadoMapa.obraTemporal.setLatLng([latitud, longitud]);
+    estadoMapa.obra.setLatLng(posicionObra);
+    estadoMapa.obra.setIcon(icono);
   }
+  const textoLinea = `${Math.round(o.distancia)} m · eficiencia ${Math.round(o.eficiencia * 100)} %`;
+  if (!estadoMapa.linea) {
+    estadoMapa.linea = L.polyline([centro, posicionObra], {
+      color: COLOR_OBRA, weight: 2, dashArray: '4 6', interactive: false
+    }).addTo(estadoMapa.mapa);
+  } else {
+    estadoMapa.linea.setLatLngs([centro, posicionObra]);
+  }
+  estadoMapa.obra.unbindTooltip();
+  estadoMapa.obra.bindTooltip(textoLinea, {
+    permanent: true, direction: 'right', offset: [16, 0], className: 'etiqueta-linea'
+  });
 }
 
-function quitarObraTemporal() {
-  quitarCapa('obraTemporal');
+function limpiarSimulacion() {
+  ['predio', 'zonaAntes', 'zonaActual', 'obra', 'linea'].forEach(quitarCapa);
 }
 
-function escaparMapa(texto) {
-  const div = document.createElement('div');
-  div.textContent = texto ?? '';
-  return div.innerHTML;
+// Encuadra el mapa para ver la zona afectada completa.
+function encuadrarZona() {
+  const zona = estadoMapa.zonaAntes || estadoMapa.zonaActual || estadoMapa.predio;
+  if (!zona) return;
+  const centro = zona.getLatLng();
+  const radio = Math.max(zona.getRadius(), estadoMapa.zonaActual ? estadoMapa.zonaActual.getRadius() : 0);
+  // El margen derecho deja la zona a la vista junto al panel de datos.
+  const panelVisible = !estadoMapa.panel.getContainer().classList.contains('oculto');
+  estadoMapa.mapa.flyToBounds(centro.toBounds(radio * 2.3), {
+    maxZoom: 18,
+    duration: 0.6,
+    paddingTopLeft: [20, 20],
+    paddingBottomRight: [panelVisible && estadoMapa.mapa.getSize().x > 600 ? 310 : 20, 20]
+  });
 }
 
-// Recalcula el tamaño del mapa cuando su pestaña vuelve a mostrarse.
+// Contenido HTML del panel de datos; vacío lo oculta.
+function actualizarPanelMapa(html) {
+  const div = estadoMapa.panel.getContainer();
+  div.innerHTML = html || '';
+  div.classList.toggle('oculto', !html);
+}
+
+// Recalcula el tamaño del mapa cuando cambia el diseño de la página.
 function ajustarMapa() {
   if (estadoMapa.mapa) estadoMapa.mapa.invalidateSize();
 }
