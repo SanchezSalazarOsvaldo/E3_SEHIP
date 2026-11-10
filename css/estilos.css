@@ -772,3 +772,63 @@ body.hay-proyecto .sin-proyecto { display: none !important; }
   .panel-mapa { min-width: 0; max-width: 200px; font-size: 11.5px; padding: 8px 10px; }
   .panel-mapa .fila:nth-of-type(n+4) { display: none; }
 }
+
+/* ---------- Módulo de administración ---------- */
+.pie-login a { color: var(--agua); font-weight: 500; }
+.login-ancho { max-width: 760px; }
+.metricas-admin { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+.metrica-admin { display: flex; align-items: center; gap: 16px; }
+.metrica-admin > .icono { width: 40px; height: 40px; color: var(--agua); background: var(--celeste); border-radius: 10px; padding: 8px; }
+.metrica-grande { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 32px; line-height: 1.1; }
+.mapa-admin { height: 540px; cursor: grab; }
+.metricas-dos { grid-template-columns: 1fr 1fr; margin-top: 0; }
+.metrica-boton {
+  font: inherit; color: inherit; text-align: left; border: 1.5px solid transparent; cursor: pointer;
+}
+.metrica-boton:hover { border-color: var(--agua); }
+.metrica-boton.seleccionada { border-color: var(--agua); background: var(--celeste); }
+.nota-tabla { margin: 14px 0 0; }
+.tabla-intensidades td, .tabla-intensidades th { padding: 6px 8px; }
+.celda-intensidad {
+  font: inherit; font-variant-numeric: tabular-nums; color: var(--primario); background: none;
+  border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; cursor: pointer; width: 100%; text-align: right;
+}
+.celda-intensidad:hover { border-color: var(--agua); background: var(--fondo); }
+.celda-intensidad.seleccionada { background: var(--celeste); border-color: var(--agua); font-weight: 600; }
+.celda-intensidad.sin-valor { color: var(--rojo); font-style: italic; font-size: 12px; }
+.barra-busqueda { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 4px; flex-wrap: wrap; }
+.barra-busqueda .campo { flex: 1; min-width: 200px; }
+.oculto-visual { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.tabla-usuarios td { vertical-align: middle; }
+.usuario-celda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 500; }
+.etiqueta-mini {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+  background: var(--celeste); color: var(--agua); border-radius: 999px; padding: 2px 8px;
+}
+.etiqueta-inicial { background: #F3E8F7; color: #6A1B9A; }
+.control-rol { display: flex; gap: 6px; align-items: center; }
+.control-rol select {
+  font: inherit; font-size: 13px; color: var(--primario); border: 1px solid var(--borde-campo);
+  border-radius: 6px; padding: 6px 8px; background: var(--blanco);
+}
+.boton-chico { padding: 6px 10px; font-size: 12.5px; white-space: nowrap; }
+.boton-peligro { background: var(--blanco); color: var(--rojo); border-color: var(--rojo-borde); }
+.boton-peligro:hover { background: var(--rojo-claro); }
+.boton-peligro.confirmando { background: var(--rojo); color: var(--blanco); border-color: var(--rojo); }
+.chip-inactivo { background: #E6E9EB; color: var(--texto-suave); }
+.fila-inactiva td { color: var(--texto-suave); }
+.lista-correos { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.lista-correos li { border: 1px solid var(--borde); border-radius: 8px; padding: 12px 14px; background: var(--fondo); }
+.correo-encabezado { font-size: 12px; color: var(--texto-suave); margin-bottom: 4px; }
+.correo-cuerpo { white-space: pre-wrap; font-family: 'Inter', sans-serif; font-size: 13px; margin: 8px 0 0; }
+
+@media (max-width: 1000px) {
+  .metricas-admin { grid-template-columns: 1fr; }
+  .mapa-admin { height: 380px; }
+}
+.distribucion > * { min-width: 0; }
+.control-rol select { max-width: 230px; }
+
+.formulario-linea { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr auto; align-items: end; gap: 14px; }
+.formulario-linea .boton { height: 44px; }
+@media (max-width: 1000px) { .formulario-linea { grid-template-columns: 1fr; } }

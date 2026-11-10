@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEHIP · Bandeja de correo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body class="pagina-login">
+
+  <!-- Iconos de trazo lineal reutilizables -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="i-triangulo" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+    <symbol id="i-candado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3"/></symbol>
+  </svg>
+
+  <main class="login login-ancho">
+    <div class="tarjeta">
+      <div class="marca">
+        <div class="logo">SH</div>
+        <div>
+          <div class="marca-nombre">SEHIP</div>
+          <div class="marca-descripcion">Sistema de Evaluación Hidrológica e Impacto Pluvial</div>
+        </div>
+      </div>
+
+      <h1>Bandeja de correo (simulación)</h1>
+      <p class="subtitulo">Sin servidor no se envían correos reales. Aquí aparecen los correos que el sistema
+        “envía”, como la contraseña temporal de las cuentas creadas (RF-ADM-04).</p>
+      <ul class="lista-correos" id="lista-correos"></ul>
+    </div>
+    <p class="pie-login"><a href="index.html">Acceso de ingenieros civiles</a> · <a href="admin.html">Acceso administrativo</a><br>SEHIP · Equipo 3 · Versión 1.0</p>
+  </main>
+
+  <script src="js/datos.js"></script>
+  <script src="js/bandeja.js"></script>
+</body>
+</html>

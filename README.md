@@ -1,10 +1,10 @@
-# SEHIP – Módulo Web de Simulación Hidrológica (versión sin base de datos)
+# SEHIP – Módulos web de Simulación Hidrológica y de Administración (versión sin base de datos)
 
 Sistema de Evaluación Hidrológica e Impacto Pluvial · Equipo 3
 
 HTML, CSS y JavaScript puro. No requiere servidor ni base de datos: todas las validaciones se hacen en
-JavaScript y los proyectos, simulaciones y reportes se guardan en el `localStorage` del navegador.
-Implementa RF-WEB-01 a RF-WEB-08.
+JavaScript y los datos (cuentas, tabla maestra, proyectos, simulaciones y reportes) se guardan en el
+`localStorage` del navegador. Implementa RF-WEB-01 a RF-WEB-08 y RF-ADM-01 a RF-ADM-07.
 
 ## Cómo ejecutarlo
 
@@ -15,22 +15,28 @@ El mapa base necesita conexión a internet; sin ella, el mapa muestra solo los l
 
 ```
 sehip-web-sin-bd/
-├── index.html                # Inicio de sesión (RF-WEB-01)
+├── index.html                # Inicio de sesión de ingenieros (RF-WEB-01)
 ├── panel.html                # Panel del ingeniero civil con pestañas
+├── admin.html                # Acceso administrativo (RF-ADM-01)
+├── admin-panel.html          # Panel de administración (RF-ADM-02 a RF-ADM-07)
+├── bandeja.html              # Bandeja de correo simulada (contraseñas temporales)
 ├── css/estilos.css           # Guía visual de Figma
 ├── lib/                      # Librerías incluidas (funcionan sin internet)
 │   ├── leaflet/              # Mapa interactivo
 │   └── jspdf.umd.min.js      # Generación de PDF
 └── js/
-    ├── datos.js              # Cuentas, alcaldías y tabla maestra normativa (Cp, Ci, intensidades)
+    ├── datos.js              # Cuentas, sesión, alcaldías, tabla maestra, incidencias y correo simulado
     ├── config-mapa.js        # Proveedores del mapa base
     ├── limites-alcaldias.js  # Límites de las 16 alcaldías (INEGI) y detección de alcaldía por punto
     ├── validaciones.js       # Validaciones, fórmulas y mensajes oficiales
-    ├── proyectos.js          # Sesión, proyectos, cálculos y reportes (localStorage)
+    ├── proyectos.js          # Sesión del ingeniero, proyectos, cálculos y reportes (localStorage)
+    ├── administracion.js     # Operaciones del módulo de administración (localStorage)
     ├── mapa.js               # Mapa de alcaldías
     ├── reporte.js            # Reporte técnico en PDF
-    ├── login.js              # Comportamiento de index.html
-    └── panel.js              # Comportamiento de panel.html
+    ├── login.js, panel.js    # Comportamiento de index.html y panel.html
+    ├── admin-login.js        # Comportamiento de admin.html
+    ├── admin-panel.js        # Comportamiento de admin-panel.html
+    └── bandeja.js            # Comportamiento de bandeja.html
 ```
 
 ## Organización de la interfaz
@@ -48,11 +54,58 @@ Arriba de las pestañas está la barra del proyecto activo, con el botón **Expo
 
 | Cuenta | Correo | Contraseña | Acceso al módulo |
 |---|---|---|---|
-| Administrador del Sistema inicial (protegido) | admin@sehip.mx | Admin12345 | No (es del módulo de administración) |
-| Ingeniero Civil | ingeniero@sehip.mx | Clave1234 | Sí |
-| Ingeniero Civil inactivo | inactivo@sehip.mx | Clave1234 | No (cuenta inactiva) |
+| Administrador del Sistema inicial (protegido) | admin@sehip.mx | Admin12345 | Administración (`admin.html`) |
+| Ingeniero Civil | ingeniero@sehip.mx | Clave1234 | Simulación (`index.html`) |
+| Ingeniero Civil inactivo | inactivo@sehip.mx | Clave1234 | Ninguno (cuenta inactiva) |
 
-Para agregar otro ingeniero se añade un objeto a la lista `USUARIOS` en `js/datos.js`.
+Las cuentas nuevas se crean desde el módulo de administración. Las contraseñas se guardan cifradas (SHA-256).
+Para volver al estado inicial: F12 → Application → Local Storage → borrar las claves que empiezan con `sehip_`.
+
+## Módulo de administración (RF-ADM-01 a RF-ADM-07)
+
+Acceso: **admin.html** (enlace “Acceso administrativo” en el inicio de sesión de ingenieros). Solo entran
+cuentas activas con rol **Administrador del Sistema**; un ingeniero que abra el panel ve “Acceso denegado: se
+requiere rol de administrador”.
+
+| Pestaña | Qué hace | Requerimiento |
+|---|---|---|
+| **Panel de control** | Total de proyectos registrados, total de simulaciones realizadas, total de incidencias y mapa de la CDMX con los puntos críticos de encharcamiento (las alcaldías con más incidencias se ven más intensas) | RF-ADM-02 |
+| **Tabla maestra** | Actualiza Cp, Ci o la intensidad de una alcaldía y período de retorno (clic en un valor de la tabla para editarlo). El valor se sobrescribe y rige para los cálculos siguientes; los proyectos ya calculados no se recalculan | RF-ADM-03 |
+| **Usuarios** | Crear cuenta con contraseña temporal enviada por correo, buscar por nombre, correo o rol, cambiar rol y desactivar cuenta (pide una segunda pulsación para confirmar) | RF-ADM-04 a 07 |
+
+Reglas adicionales:
+
+- Debe quedar siempre al menos un administrador activo.
+- El administrador inicial (protegido) no puede cambiar de rol ni desactivarse.
+- Un cambio de rol rige desde el siguiente inicio de sesión del usuario.
+- Una cuenta desactivada no puede iniciar sesión y su sesión abierta se cierra en la siguiente acción;
+  sus proyectos se conservan. La reactivación no forma parte del módulo.
+- **Correo simulado:** sin servidor no se envían correos reales. La contraseña temporal aparece en
+  `bandeja.html` (enlace “Bandeja de correo (simulación)”). Para probar la falla del correo, cambia
+  `SIMULAR_FALLA_CORREO` a `true` en `js/datos.js`.
+
+### Mensajes del módulo de administración
+
+| Requerimiento | Cómo provocarlo | Mensaje |
+|---|---|---|
+| RF-ADM-01 | Cuenta de ingeniero, contraseña incorrecta, cuenta inactiva o formato inválido | Las credenciales o los privilegios de administrador son incorrectos |
+| RF-ADM-02 | Abrir el panel con sesión de ingeniero | Acceso denegado: se requiere rol de administrador |
+| RF-ADM-02 | Sin puntos críticos registrados | No hay incidencias registradas |
+| RF-ADM-03 | Cp = 0.25 | El parámetro fue actualizado con éxito |
+| RF-ADM-03 | Cp = 0.99 o intensidad = 300 | El valor está fuera de norma |
+| RF-ADM-03 | Vacío, texto o 0.251 | Ingrese un valor numérico con máximo dos decimales |
+| RF-ADM-04 | Correo ya registrado, nombre vacío, correo inválido o sin rol | El correo electrónico ya se encuentra registrado o los datos son inválidos |
+| RF-ADM-04 | Falla el envío del correo | No fue posible enviar la contraseña temporal; la cuenta no fue creada |
+| RF-ADM-05 | Búsqueda vacía o de más de 50 caracteres | Ingrese entre 1 y 50 caracteres |
+| RF-ADM-05 | Búsqueda sin coincidencias (“zzz”) | No se encontraron usuarios con el criterio ingresado |
+| RF-ADM-06 | Cambio correcto | El rol de usuario fue modificado exitosamente |
+| RF-ADM-06 | Pasar a ingeniero al único administrador activo | No es posible eliminar el último rol de administrador activo |
+| RF-ADM-06 | Elegir el mismo rol | El rol seleccionado es igual al rol actual de la cuenta |
+| RF-ADM-06 | Usuario eliminado mientras se mostraba la lista | El usuario seleccionado no existe |
+| RF-ADM-07 | Desactivar la propia cuenta | No es posible desactivar la cuenta propia en uso |
+| RF-ADM-07 | Desactivar una cuenta ya inactiva | La cuenta seleccionada ya se encuentra inactiva |
+
+
 
 ## Mapa (Leaflet)
 
@@ -165,7 +218,7 @@ Con los valores de `js/datos.js` (Cp = 0.20, Ci = 0.90, intensidad de 10 años =
 ## Notas
 
 - Los datos se conservan al recargar, pero solo en ese navegador. Para borrarlos: F12 → Application →
-  Local Storage → eliminar `sehip_proyectos_v3`, `sehip_simulaciones_v3` y `sehip_reportes_v3`.
+  Local Storage → eliminar las claves que empiezan con `sehip_`.
 - Los valores de Cp, Ci e intensidades de `js/datos.js` son ilustrativos y deben sustituirse por los oficiales.
 - Límites de alcaldías: INEGI, Marco Geoestadístico 2022, vía [PhantomInsights/mexico-geojson](https://github.com/PhantomInsights/mexico-geojson) (simplificados).
   Mapas base: © Esri, © OpenStreetMap.

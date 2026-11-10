@@ -2,6 +2,9 @@
 // especificación de requerimientos (RF-WEB-01 a RF-WEB-07).
 
 const PERIODOS_RETORNO = [2, 5, 10, 20, 50];
+const ROL_INGENIERO = 'Ingeniero Civil';
+const ROL_ADMINISTRADOR = 'Administrador del Sistema';
+const ROLES = [ROL_INGENIERO, ROL_ADMINISTRADOR];
 const TIPOS_OBRA = ['Pozo de Infiltración', 'Tanque de Tormenta', 'Jardín de Lluvia'];
 
 const MENSAJES = {
@@ -32,6 +35,31 @@ const MENSAJES = {
   cpNoRegistrado: 'La tabla maestra normativa no contiene un coeficiente vigente para superficie permeable (Cp)',
   dentroDeCapacidad: 'El caudal ajustado está dentro de la capacidad de descarga permitida',
   excedeCapacidad: 'El caudal ajustado excede la capacidad de descarga permitida',
+  // RF-ADM-01
+  adminLoginIncorrecto: 'Las credenciales o los privilegios de administrador son incorrectos',
+  // RF-ADM-02
+  accesoDenegado: 'Acceso denegado: se requiere rol de administrador',
+  sinIncidencias: 'No hay incidencias registradas',
+  // RF-ADM-03
+  parametroActualizado: 'El parámetro fue actualizado con éxito',
+  valorFueraDeNorma: 'El valor está fuera de norma',
+  valorNoNumerico: 'Ingrese un valor numérico con máximo dos decimales',
+  // RF-ADM-04
+  cuentaInvalida: 'El correo electrónico ya se encuentra registrado o los datos son inválidos',
+  correoFallido: 'No fue posible enviar la contraseña temporal; la cuenta no fue creada',
+  // RF-ADM-05
+  busquedaLongitud: 'Ingrese entre 1 y 50 caracteres',
+  sinUsuarios: 'No se encontraron usuarios con el criterio ingresado',
+  // RF-ADM-06
+  rolModificado: 'El rol de usuario fue modificado exitosamente',
+  ultimoAdministrador: 'No es posible eliminar el último rol de administrador activo',
+  rolIgual: 'El rol seleccionado es igual al rol actual de la cuenta',
+  usuarioNoExiste: 'El usuario seleccionado no existe',
+  administradorProtegido: 'El administrador inicial no puede cambiar de rol ni deshabilitarse',
+  // RF-ADM-07
+  cuentaPropia: 'No es posible desactivar la cuenta propia en uso',
+  cuentaYaInactiva: 'La cuenta seleccionada ya se encuentra inactiva',
+  cuentaDesactivada: 'La cuenta fue desactivada; ya no podrá iniciar sesión y su historial se conserva',
   // RF-WEB-08
   reporteIncompleto: 'Debe completar todos los cálculos antes de exportar',
   reporteFallido: 'No fue posible generar el reporte técnico'
@@ -73,11 +101,15 @@ function leerCantidad(valor) {
   return Number(texto);
 }
 
-// ---------- RF-WEB-01: credenciales ----------
+// ---------- RF-WEB-01 y RF-ADM-01: credenciales ----------
+// Correo con formato usuario@dominio.com y longitud de 5 a 50 caracteres.
+function correoValido(correo) {
+  return typeof correo === 'string' && correo.length >= 5 && correo.length <= 50
+    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+}
+
 function credencialesConFormatoValido(correo, contrasena) {
-  const formatoCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return typeof correo === 'string' && typeof contrasena === 'string'
-    && correo.length >= 5 && correo.length <= 50 && formatoCorreo.test(correo)
+  return correoValido(correo) && typeof contrasena === 'string'
     && contrasena.length >= 8 && contrasena.length <= 16;
 }
 
@@ -252,6 +284,53 @@ function eficienciaPorUbicacion(distancia, radio) {
   return redondear(1 - (1 - EFICIENCIA_EN_BORDE) * (distancia / radio), 3);
 }
 
+// ---------- RF-ADM-03: tabla maestra ----------
+// tipo: 'Cp', 'Ci' o 'intensidad'. Devuelve { valor } o { error } con el mensaje oficial.
+function validarValorParametro(tipo, texto) {
+  const limpio = String(texto ?? '').trim();
+  if (!/^-?\d+(\.\d{1,2})?$/.test(limpio)) return { error: MENSAJES.valorNoNumerico };
+  const valor = Number(limpio);
+  const enRango = tipo === 'intensidad'
+    ? valor >= 10 && valor <= 250
+    : valor >= 0.05 && valor <= 0.95;
+  return enRango ? { valor } : { error: MENSAJES.valorFueraDeNorma };
+}
+
+// ---------- RF-ADM-04: datos de una cuenta nueva ----------
+function datosCuentaValidos(nombre, correo, rol) {
+  const nombreLimpio = typeof nombre === 'string' ? nombre.trim() : '';
+  return nombreLimpio.length >= 1 && nombreLimpio.length <= 100
+    && correoValido(typeof correo === 'string' ? correo.trim() : '')
+    && ROLES.includes(rol);
+}
+
+// Contraseña temporal de 12 caracteres (dentro del rango de 8 a 16) sin caracteres ambiguos.
+// obtenerAleatorios(n) devuelve n enteros aleatorios (crypto del navegador o de Node.js).
+function generarContrasenaTemporal(obtenerAleatorios) {
+  const grupos = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnpqrstuvwxyz', '23456789', '#$%&*+?'];
+  const todos = grupos.join('');
+  const aleatorios = obtenerAleatorios(12);
+  const caracteres = aleatorios.map((n, i) => (i < grupos.length ? grupos[i] : todos)[n % (i < grupos.length ? grupos[i] : todos).length]);
+  // Mezcla para que los caracteres obligatorios no queden siempre al inicio.
+  for (let i = caracteres.length - 1; i > 0; i -= 1) {
+    const j = aleatorios[(i + 3) % aleatorios.length] % (i + 1);
+    [caracteres[i], caracteres[j]] = [caracteres[j], caracteres[i]];
+  }
+  return caracteres.join('');
+}
+
+// ---------- RF-ADM-05: búsqueda de usuarios ----------
+function busquedaValida(texto) {
+  return typeof texto === 'string' && texto.length >= 1 && texto.length <= 50;
+}
+
+// Coincidencia parcial sin distinguir mayúsculas ni acentos en nombre, correo o rol.
+function usuarioCoincide(usuario, texto) {
+  const normalizar = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const buscado = normalizar(texto.trim());
+  return [usuario.nombre, usuario.correo, usuario.rol].some((campo) => normalizar(campo).includes(buscado));
+}
+
 // ---------- RF-WEB-08: reporte técnico ----------
 // El proyecto debe tener nombre, alcaldía, superficies, coeficiente, intensidad y caudal pico.
 function datosCompletosParaReporte(proyecto) {
@@ -272,7 +351,8 @@ function datosCompletosParaReporte(proyecto) {
 // Permite usar este mismo archivo desde Node.js (servidor y pruebas); en el navegador se ignora.
 if (typeof module !== 'undefined') {
   module.exports = {
-    PERIODOS_RETORNO, TIPOS_OBRA, MENSAJES, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
+    PERIODOS_RETORNO, TIPOS_OBRA, MENSAJES, ROL_INGENIERO, ROL_ADMINISTRADOR, ROLES,
+    correoValido, validarValorParametro, datosCuentaValidos, generarContrasenaTemporal, busquedaValida, usuarioCoincide, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
     coordenadasValidas, limitesSemaforo, evaluarSemaforo, capacidadNecesaria,
     LAMINA_ENCHARCAMIENTO, distanciaMetros, volumenExcedente, radioAfectacion, eficienciaPorUbicacion,
     radioPredio, areaZonaAfectada, simulacionVigente,

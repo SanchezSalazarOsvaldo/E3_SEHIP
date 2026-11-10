@@ -5,74 +5,30 @@
 const CLAVE_PROYECTOS = 'sehip_proyectos_v3';
 const CLAVE_SIMULACIONES = 'sehip_simulaciones_v3';
 const CLAVE_REPORTES = 'sehip_reportes_v3';
-const CLAVE_SESION = 'sehip_sesion';
 const PROYECTOS_POR_PAGINA = 10;
 
-// ---------- Almacenamiento ----------
-
-function leerLista(clave) {
-  return JSON.parse(localStorage.getItem(clave) || '[]');
-}
-
-function guardarLista(clave, lista) {
-  localStorage.setItem(clave, JSON.stringify(lista));
-}
-
-// Siguiente identificador numérico único (mayor o igual a 1).
-function siguienteId(lista) {
-  return lista.reduce((maximo, elemento) => Math.max(maximo, elemento.id), 0) + 1;
-}
-
-// Fecha local en formato YYYY-MM-DD y fecha y hora en formato YYYY-MM-DD HH:MM:SS.
-function fechaHoy() {
-  const d = new Date();
-  const dos = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
-}
-
-function fechaHoraActual() {
-  const d = new Date();
-  const dos = (n) => String(n).padStart(2, '0');
-  return `${fechaHoy()} ${dos(d.getHours())}:${dos(d.getMinutes())}:${dos(d.getSeconds())}`;
-}
-
 // ---------- RF-WEB-01: sesión ----------
-
-function iniciarSesion(correoTexto, contrasena) {
+// Solo cuentas activas con rol Ingeniero Civil; cualquier fallo devuelve el mismo mensaje.
+async function iniciarSesion(correoTexto, contrasena) {
   const correo = String(correoTexto).trim();
   if (!credencialesConFormatoValido(correo, contrasena)) {
     return { ok: false, error: MENSAJES.loginIncorrecto };
   }
-
-  const usuario = USUARIOS.find((u) => u.correo.toLowerCase() === correo.toLowerCase());
+  const usuario = (await obtenerUsuarios()).find((u) => u.correo.toLowerCase() === correo.toLowerCase());
   const accesoValido = usuario
-    && usuario.contrasena === contrasena
+    && usuario.contrasenaHash === await cifrarContrasena(contrasena)
     && usuario.activo
-    && usuario.rol === 'Ingeniero Civil';
-
+    && usuario.rol === ROL_INGENIERO;
   if (!accesoValido) {
     return { ok: false, error: MENSAJES.loginIncorrecto };
   }
-
-  const sesion = { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo };
-  sessionStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
-  return { ok: true, usuario: sesion };
+  return { ok: true, usuario: guardarSesion(usuario) };
 }
 
-// Usuario de la sesión activa, o null si no hay sesión o la cuenta ya no está activa.
-function usuarioActivo() {
-  const sesion = JSON.parse(sessionStorage.getItem(CLAVE_SESION) || 'null');
-  if (!sesion) return null;
-  const usuario = USUARIOS.find((u) => u.id === sesion.id);
-  if (!usuario || !usuario.activo) {
-    cerrarSesion();
-    return null;
-  }
-  return sesion;
-}
-
-function cerrarSesion() {
-  sessionStorage.removeItem(CLAVE_SESION);
+// Usuario de la sesión si es un ingeniero civil con cuenta activa; null en otro caso.
+async function usuarioActivo() {
+  const resultado = await sesionConRol(ROL_INGENIERO);
+  return resultado.estado === 'ok' ? resultado.usuario : null;
 }
 
 // ---------- Catálogos ----------
@@ -89,7 +45,7 @@ function obtenerCoeficientes() {
 
 // Proyecto por identificador solo si pertenece al usuario activo.
 function buscarProyectoPropio(idProyecto) {
-  const usuario = usuarioActivo();
+  const usuario = leerSesion();
   const id = Number(idProyecto);
   if (!usuario || !Number.isInteger(id) || id < 1) return null;
   return leerLista(CLAVE_PROYECTOS).find((p) => p.id === id && p.idUsuario === usuario.id) || null;
@@ -172,7 +128,7 @@ function registrarProyecto(nombreTexto, idAlcaldiaTexto, latitudTexto, longitudT
   const proyectos = leerLista(CLAVE_PROYECTOS);
   const proyecto = {
     id: siguienteId(proyectos),
-    idUsuario: usuarioActivo().id,
+    idUsuario: leerSesion().id,
     nombre,
     idAlcaldia,
     latitud: Number(Number(latitudTexto).toFixed(6)),
@@ -225,7 +181,7 @@ function moverProyecto(idProyecto, latitudTexto, longitudTexto) {
 // ---------- RF-WEB-03: historial y consulta ----------
 
 function listarProyectos(paginaSolicitada) {
-  const usuario = usuarioActivo();
+  const usuario = leerSesion();
   const propios = leerLista(CLAVE_PROYECTOS)
     .filter((p) => p.idUsuario === usuario.id)
     .sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion) || b.id - a.id);
