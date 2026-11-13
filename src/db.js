@@ -37,12 +37,6 @@ const pool = new Pool({
   max: 5,
   connectionTimeoutMillis: 10000
 });
-
-// Las fechas y horas que genera la base (LOCALTIMESTAMP, CURRENT_DATE) se calculan en la hora de la CDMX.
-pool.on('connect', (cliente) => {
-  cliente.query("SET TIME ZONE 'America/Mexico_City'").catch((error) => console.error(error.message));
-});
-
 // Un error en una conexión inactiva (por ejemplo, la base se reinició) no detiene el servidor.
 pool.on('error', (error) => console.error('Error en la conexión con PostgreSQL:', error.message));
 
