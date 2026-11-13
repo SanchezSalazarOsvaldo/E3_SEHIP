@@ -199,6 +199,7 @@
       </div>
 
       <div class="con-proyecto columna">
+        <ol class="progreso-calculo" id="progreso-calculo" aria-label="Avance del cálculo"></ol>
         <div class="tarjeta">
           <div class="metricas">
             <div class="metrica">
@@ -233,7 +234,7 @@
 
         <div class="pasos pasos-tres">
           <!-- RF-WEB-04 -->
-          <section class="tarjeta">
+          <section class="tarjeta paso-calculo" id="paso-coeficiente">
             <div class="numero-paso">01</div>
             <div class="tarjeta-encabezado">
               <div class="tarjeta-titulo">
@@ -251,13 +252,14 @@
                 <label for="ai">Superficie impermeable proyectada (m²)</label>
                 <input type="text" inputmode="decimal" id="ai" name="superficieImpermeable" placeholder="0.00">
               </div>
+              <div id="vista-coeficiente"></div>
               <div class="acciones"><button type="submit" class="boton">Calcular coeficiente</button></div>
             </form>
             <div id="msg-coeficiente"></div>
           </section>
 
           <!-- RF-WEB-05 -->
-          <section class="tarjeta">
+          <section class="tarjeta paso-calculo" id="paso-intensidad">
             <div class="numero-paso">02</div>
             <div class="tarjeta-encabezado">
               <div class="tarjeta-titulo">
@@ -278,13 +280,14 @@
                   <option value="50">50 años</option>
                 </select>
               </div>
+              <div id="grafica-intensidad"></div>
               <div class="acciones"><button type="submit" class="boton">Consultar intensidad</button></div>
             </form>
             <div id="msg-intensidad"></div>
           </section>
 
           <!-- RF-WEB-06 -->
-          <section class="tarjeta">
+          <section class="tarjeta paso-calculo" id="paso-caudal">
             <div class="numero-paso">03</div>
             <div class="tarjeta-encabezado">
               <div class="tarjeta-titulo">
@@ -293,6 +296,7 @@
               </div>
             </div>
             <p class="formula">Fórmula: <code>Q = C · I · A / 360</code> (A en hectáreas, Q en m³/s)</p>
+            <div id="desarrollo-caudal"></div>
             <form id="form-caudal" class="formulario" novalidate>
               <div class="acciones"><button type="submit" class="boton">Calcular caudal</button></div>
             </form>
@@ -309,6 +313,7 @@
           </div>
           <p class="formula">Compara el caudal pico del proyecto con la capacidad de descarga permitida
             (<code>Cp · I · A / 360</code>): verde hasta 100 %, amarillo hasta 150 % y rojo arriba de 150 %.</p>
+          <div id="medidor-calculo"></div>
           <div id="semaforo-calculo"></div>
           <div class="acciones" id="accion-mitigar"></div>
         </section>
@@ -374,6 +379,7 @@
               <h2>Semáforo: antes y después de la obra</h2>
             </div>
           </div>
+          <div id="medidor-mitigacion"></div>
           <div class="comparativo">
             <div>
               <div class="comparativo-titulo">Sin obra de mitigación</div>
@@ -471,6 +477,7 @@
             <span><i class="ley-zona"></i>Zona afectada (color del semáforo)</span>
             <span><i class="ley-antes"></i>Zona sin obra</span>
             <span><i class="ley-obra"></i>Obra de mitigación</span>
+            <span><i class="ley-anillos"></i>Eficiencia de la obra (90 / 75 / 50 %)</span>
           </div>
         </section>
     </aside>

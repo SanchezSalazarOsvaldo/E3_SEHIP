@@ -44,8 +44,8 @@ sehip-web-sin-bd/
 | Pestaña | Contenido | Requerimientos |
 |---|---|---|
 | **Proyectos** | Registro de proyecto con su punto de ubicación en el mapa, historial paginado y marcador del proyecto activo con el color de su semáforo | RF-WEB-02, RF-WEB-03 |
-| **Cálculo hidrológico** | Coeficiente de escurrimiento, intensidad de lluvia, caudal pico y semáforo sin obra | RF-WEB-04, 05, 06 |
-| **Mitigación** | Simulación de obras, semáforo antes/después, capacidad recomendada y simulaciones guardadas | RF-WEB-07 |
+| **Cálculo hidrológico** | Barra de avance, coeficiente con vista previa (composición permeable/impermeable), gráfica de intensidades de la alcaldía, caudal pico con la fórmula sustituida, medidor de riesgo y semáforo sin obra | RF-WEB-04, 05, 06 |
+| **Mitigación** | Simulación de obras, medidor y semáforo antes/después, capacidad recomendada según la eficiencia (botón **Usar**) y simulaciones guardadas | RF-WEB-07 |
 | **Reporte técnico** | Lista de datos obligatorios, exportación a PDF e historial de reportes | RF-WEB-08 |
 
 Arriba de las pestañas está la barra del proyecto activo, con el botón **Exportar PDF**.
@@ -130,11 +130,14 @@ El mapa está siempre visible a la derecha y muestra **un solo proyecto a la vez
    y el caudal se actualizan solos. El botón **Nuevo proyecto** libera el mapa para registrar otro.
 2. **Cálculo:** al calcular el caudal pico aparecen la huella del predio (gris) y la **zona afectada** (color del
    semáforo). Cada cambio de superficies, intensidad o ubicación recalcula y anima el círculo.
-3. **Mitigación:** clic dentro de la zona afectada para colocar la obra. Al escribir la capacidad se muestra una
+3. **Mitigación:** el mapa muestra los anillos de eficiencia (90 %, 75 % y 50 % en el borde) y, junto al
+   cursor, la distancia y la eficiencia que tendría la obra en ese punto. Clic dentro de la zona afectada para colocar la obra. Al escribir la capacidad se muestra una
    **vista previa** (zona, semáforo y panel del mapa) sin guardar; **Simular mitigación** la guarda. La zona sin
    obra queda como contorno punteado para comparar. Si el proyecto cambia después, la simulación queda como
    “Desactualizada”.
-4. El panel dentro del mapa resume caudal pico, descarga permitida, % del semáforo, radios y reducción del área.
+4. El panel dentro del mapa resume el medidor de riesgo, caudal pico, descarga permitida, radios y la reducción
+   del caudal y del área. El botón con la mira (debajo del zoom) vuelve a encuadrar la simulación.
+5. El reporte PDF incluye el medidor de riesgo con las marcas sin obra y con la obra.
 
 | Ejemplo (Ap = 6000, Ai = 14000, 10 años) | Caudal (m³/s) | Radio de la zona | Semáforo |
 |---|---|---|---|

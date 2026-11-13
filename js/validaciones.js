@@ -229,9 +229,9 @@ function evaluarSemaforo(caudal, caudalPermitido) {
 }
 
 // Capacidad mínima de almacenamiento (m³) para que el caudal ajustado llegue a un caudal objetivo:
-// capacidad = (Qpico − Qobjetivo) × 3,600, redondeada hacia arriba a 2 decimales.
-function capacidadNecesaria(caudalPico, caudalObjetivo) {
-  const capacidad = Math.ceil(((caudalPico - caudalObjetivo) * 3600 - 1e-9) * 100) / 100;
+// capacidad = (Qpico − Qobjetivo) × 3,600 / eficiencia, redondeada hacia arriba a 2 decimales.
+function capacidadNecesaria(caudalPico, caudalObjetivo, eficiencia = 1) {
+  const capacidad = Math.ceil(((caudalPico - caudalObjetivo) * 3600 / eficiencia - 1e-9) * 100) / 100;
   return Math.max(0, capacidad);
 }
 
@@ -282,6 +282,11 @@ function simulacionVigente(simulacion, proyecto, caudalPermitido) {
 function eficienciaPorUbicacion(distancia, radio) {
   if (!(radio > 0) || distancia > radio) return null;
   return redondear(1 - (1 - EFICIENCIA_EN_BORDE) * (distancia / radio), 3);
+}
+
+// Distancia (m) al proyecto en la que una obra tiene la eficiencia indicada (inversa de la función anterior).
+function distanciaParaEficiencia(eficiencia, radio) {
+  return redondear(radio * (1 - eficiencia) / (1 - EFICIENCIA_EN_BORDE), 1);
 }
 
 // ---------- RF-ADM-03: tabla maestra ----------
@@ -355,6 +360,7 @@ if (typeof module !== 'undefined') {
     correoValido, validarValorParametro, datosCuentaValidos, generarContrasenaTemporal, busquedaValida, usuarioCoincide, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
     coordenadasValidas, limitesSemaforo, evaluarSemaforo, capacidadNecesaria,
     LAMINA_ENCHARCAMIENTO, distanciaMetros, volumenExcedente, radioAfectacion, eficienciaPorUbicacion,
+    distanciaParaEficiencia,
     radioPredio, areaZonaAfectada, simulacionVigente,
     redondear, leerCantidad, credencialesConFormatoValido, nombreProyectoValido,
     validarSuperficies, calcularCoeficiente, periodoValido, validarParametrosCaudal,

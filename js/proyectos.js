@@ -41,6 +41,11 @@ function obtenerCoeficientes() {
   return COEFICIENTES;
 }
 
+// Intensidades de la alcaldía por período de retorno: { 2: 40, 5: 55, ... }.
+function obtenerIntensidadesAlcaldia(idAlcaldia) {
+  return { ...(INTENSIDADES[idAlcaldia] || {}) };
+}
+
 // ---------- Consultas internas ----------
 
 // Proyecto por identificador solo si pertenece al usuario activo.

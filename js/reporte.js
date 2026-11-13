@@ -165,6 +165,40 @@ function pdfSemaforo(doc, y, filas, caudalPermitido) {
   return yInicio + 4;
 }
 
+// Barra de 0 % a 250 % de la descarga permitida con los tramos del semáforo y una marca por escenario.
+function pdfMedidor(doc, y, marcas) {
+  y = pdfEspacio(doc, y, 26);
+  const escala = 250;
+  const ancho = PDF_ANCHO - 2 * PDF_MARGEN;
+  const x = (porcentaje) => PDF_MARGEN + ancho * Math.min(1, Math.max(0, (porcentaje ?? escala) / escala));
+  const tramos = [['verde', 0, 100], ['amarillo', 100, 150], ['rojo', 150, escala]];
+  tramos.forEach(([nivel, desde, hasta]) => {
+    doc.setFillColor(...PDF_SEMAFORO[nivel]);
+    doc.rect(x(desde), y, x(hasta) - x(desde), 4, 'F');
+  });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...PDF_COLORES.suave);
+  [[0, '0 %', 'left'], [100, '100 %', 'center'], [150, '150 %', 'center'], [escala, `${escala} %+`, 'right']]
+    .forEach(([valor, texto, align]) => doc.text(texto, x(valor), y + 8, { align }));
+  marcas.forEach((m) => {
+    doc.setFillColor(...m.color);
+    doc.setDrawColor(255, 255, 255);
+    doc.rect(x(m.porcentaje) - 1, y - 2, 2, 8, 'FD');
+  });
+  let xLeyenda = PDF_MARGEN;
+  doc.setFontSize(8.5);
+  marcas.forEach((m) => {
+    doc.setFillColor(...m.color);
+    doc.rect(xLeyenda, y + 11.2, 2, 3.6, 'F');
+    doc.setTextColor(...PDF_COLORES.texto);
+    const texto = `${m.etiqueta}: ${m.porcentaje ?? '-'} % de la descarga permitida`;
+    doc.text(texto, xLeyenda + 4, y + 14);
+    xLeyenda += doc.getTextWidth(texto) + 12;
+  });
+  return y + 26;
+}
+
 // Genera el reporte. datos = { proyecto, simulacion, coeficientes: { Cp, Ci }, usuario }.
 // Devuelve { nombreArchivo, dataUri, base64, tamanoBytes, documento }.
 function generarReportePDF(datos) {
@@ -283,10 +317,13 @@ function generarReportePDF(datos) {
   }
 
   // Semáforo de impacto pluvial
-  y = pdfTitulo(doc, y, '3. Semáforo de impacto pluvial', 45);
+  y = pdfTitulo(doc, y, '3. Semáforo de impacto pluvial', 75);
   const filasSemaforo = [['Sin obra de mitigación', p.caudalPico, semaforoAntes]];
   if (s) filasSemaforo.push([`Con ${s.tipoObra} (${pdfNumero(s.capacidad, 2)} m3)`, s.caudalAjustado, semaforoDespues]);
   y = pdfSemaforo(doc, y, filasSemaforo, caudalPermitido);
+  const marcas = [{ etiqueta: 'Sin obra', porcentaje: semaforoAntes.porcentaje, color: PDF_COLORES.primario }];
+  if (s) marcas.push({ etiqueta: 'Con la obra', porcentaje: semaforoDespues.porcentaje, color: [106, 27, 154] });
+  y = pdfMedidor(doc, y + 2, marcas);
 
   // Gráfica
   y = pdfTitulo(doc, y, '4. Gráfica de caudales', 110);

@@ -4,6 +4,8 @@
 // - Zona afectada: círculo del color del semáforo cuyo radio crece con el volumen que no puede descargarse.
 // - Zona sin obra: contorno punteado que permite comparar antes y después de la mitigación.
 // - Obra de mitigación: icono según el tipo, unido al proyecto con una línea que indica distancia y eficiencia.
+// - Guía de eficiencia (pestaña Mitigación): anillos de 90 % y 75 % y etiqueta junto al cursor con la
+//   distancia y la eficiencia que tendría la obra en ese punto.
 
 const COLORES_SEMAFORO = {
   verde: '#3F6B22',
@@ -31,6 +33,10 @@ const estadoMapa = {
   obra: null,         // marcador de la obra
   linea: null,        // línea proyecto-obra
   panel: null,        // panel de datos de la simulación
+  guia: null,         // anillos de eficiencia de la obra
+  guiaZona: null,     // { centro, radio } de la zona usada por la guía
+  cursor: null,       // etiqueta que sigue al cursor en modo obra
+  limites: null,      // extensión de la Ciudad de México
   capaBase: null,
   alArrastrarPin: null
 };
@@ -108,7 +114,7 @@ function obtenerCapaBase(indice) {
 // eventos.alHacerClic(lat, lng, alcaldia) y eventos.alArrastrarPin(lat, lng, alcaldia);
 // alcaldia es null cuando el punto queda fuera de la Ciudad de México.
 function iniciarMapa(idContenedor, eventos) {
-  const mapa = L.map(idContenedor, { minZoom: 10, maxZoom: 18 });
+  const mapa = L.map(idContenedor, { minZoom: 10, maxZoom: 18, zoomSnap: 0.25 });
   estadoMapa.mapa = mapa;
   estadoMapa.alArrastrarPin = eventos.alArrastrarPin;
 
@@ -143,6 +149,40 @@ function iniciarMapa(idContenedor, eventos) {
   });
   estadoMapa.panel = new Panel({ position: 'topright' }).addTo(mapa);
 
+  // Botón para volver a encuadrar la simulación (debajo del zoom).
+  const Centrar = L.Control.extend({
+    onAdd() {
+      const div = L.DomUtil.create('div', 'leaflet-bar control-centrar');
+      div.innerHTML = `<a href="#" role="button" title="Centrar la simulación" aria-label="Centrar la simulación">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg></a>`;
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.on(div.querySelector('a'), 'click', (evento) => {
+        L.DomEvent.preventDefault(evento);
+        centrarSimulacion();
+      });
+      return div;
+    }
+  });
+  new Centrar({ position: 'topleft' }).addTo(mapa);
+
+  // Etiqueta del cursor en modo obra.
+  estadoMapa.cursor = L.tooltip({ direction: 'right', offset: [14, 0], className: 'etiqueta-cursor' });
+  mapa.on('mousemove', (evento) => {
+    if (!estadoMapa.guiaZona) return;
+    const { centro, radio } = estadoMapa.guiaZona;
+    const distancia = distanciaMetros(centro[0], centro[1], evento.latlng.lat, evento.latlng.lng);
+    const eficiencia = eficienciaPorUbicacion(distancia, radio);
+    estadoMapa.cursor
+      .setLatLng(evento.latlng)
+      .setContent(eficiencia === null
+        ? `${Math.round(distancia)} m · fuera de la zona`
+        : `${Math.round(distancia)} m · eficiencia ${Math.round(eficiencia * 100)} %`);
+    if (!mapa.hasLayer(estadoMapa.cursor)) estadoMapa.cursor.addTo(mapa);
+    estadoMapa.cursor.getElement().classList.toggle('fuera', eficiencia === null);
+  });
+  mapa.on('mouseout', () => { estadoMapa.cursor.remove(); });
+
+  estadoMapa.limites = capaGeo.getBounds();
   mapa.fitBounds(capaGeo.getBounds());
   mapa.setMaxBounds(capaGeo.getBounds().pad(0.3));
 }
@@ -274,6 +314,58 @@ function dibujarSimulacion(datos) {
 
 function limpiarSimulacion() {
   ['predio', 'zonaAntes', 'zonaActual', 'obra', 'linea'].forEach(quitarCapa);
+}
+
+// ---------- Guía para colocar la obra ----------
+
+// Anillos donde la obra tiene 90 % y 75 % de eficiencia; el borde de la zona corresponde al 50 %.
+const ANILLOS_EFICIENCIA = [0.9, 0.75];
+
+function etiquetaAnillo(centro, radio, texto) {
+  // La etiqueta va al sur del centro para no quedar debajo del pin.
+  const latitud = centro[0] - radio / 111320;
+  return L.marker([latitud, centro[1]], {
+    interactive: false,
+    keyboard: false,
+    icon: L.divIcon({ className: 'etiqueta-anillo', html: `<span>${texto}</span>`, iconSize: [0, 0] })
+  });
+}
+
+function mostrarGuiaObra(centro, radio) {
+  const zona = estadoMapa.guiaZona;
+  const sinCambios = zona && zona.radio === radio && zona.centro[0] === centro[0] && zona.centro[1] === centro[1];
+  estadoMapa.guiaZona = { centro, radio };
+  estadoMapa.mapa.getContainer().classList.add('modo-obra');
+  if (sinCambios && estadoMapa.guia) return;
+  quitarCapa('guia');
+  const capas = [];
+  ANILLOS_EFICIENCIA.forEach((eficiencia) => {
+    const r = distanciaParaEficiencia(eficiencia, radio);
+    capas.push(L.circle(centro, {
+      radius: r, interactive: false, color: COLOR_OBRA, weight: 1, opacity: 0.7, dashArray: '2 5', fill: false
+    }));
+    capas.push(etiquetaAnillo(centro, r, `${Math.round(eficiencia * 100)} %`));
+  });
+  capas.push(etiquetaAnillo(centro, radio, `${Math.round(EFICIENCIA_EN_BORDE * 100)} %`));
+  estadoMapa.guia = L.layerGroup(capas).addTo(estadoMapa.mapa);
+}
+
+function ocultarGuiaObra() {
+  quitarCapa('guia');
+  estadoMapa.guiaZona = null;
+  if (estadoMapa.cursor) estadoMapa.cursor.remove();
+  if (estadoMapa.mapa) estadoMapa.mapa.getContainer().classList.remove('modo-obra');
+}
+
+// Encuadra la zona afectada, el pin o, si no hay nada, toda la Ciudad de México.
+function centrarSimulacion() {
+  if (estadoMapa.zonaActual || estadoMapa.predio) {
+    encuadrarZona();
+  } else if (estadoMapa.pin) {
+    estadoMapa.mapa.flyTo(estadoMapa.pin.getLatLng(), 16, { duration: 0.6 });
+  } else {
+    estadoMapa.mapa.flyToBounds(estadoMapa.limites, { duration: 0.6 });
+  }
 }
 
 // Encuadra el mapa para ver la zona afectada completa.
