@@ -19,7 +19,9 @@ sehip-web-sin-bd/
 ├── panel.html                # Panel del ingeniero civil con pestañas
 ├── admin.html                # Acceso administrativo (RF-ADM-01)
 ├── admin-panel.html          # Panel de administración (RF-ADM-02 a RF-ADM-07)
-├── bandeja.html              # Bandeja de correo simulada (contraseñas temporales)
+├── contrasena.html           # Cambio de contraseña (obligatorio con contraseña temporal)
+├── recuperar.html            # Recuperación de contraseña con código
+├── bandeja.html              # Bandeja de correo simulada (contraseñas temporales y códigos)
 ├── css/estilos.css           # Guía visual de Figma
 ├── lib/                      # Librerías incluidas (funcionan sin internet)
 │   ├── leaflet/              # Mapa interactivo
@@ -31,6 +33,8 @@ sehip-web-sin-bd/
     ├── validaciones.js       # Validaciones, fórmulas y mensajes oficiales
     ├── proyectos.js          # Sesión del ingeniero, proyectos, cálculos y reportes (localStorage)
     ├── administracion.js     # Operaciones del módulo de administración (localStorage)
+    ├── cuenta.js             # Cambio y recuperación de contraseña (localStorage)
+    ├── contrasena.js, recuperar.js  # Comportamiento de contrasena.html y recuperar.html
     ├── mapa.js               # Mapa de alcaldías
     ├── reporte.js            # Reporte técnico en PDF
     ├── login.js, panel.js    # Comportamiento de index.html y panel.html
@@ -61,6 +65,18 @@ Arriba de las pestañas está la barra del proyecto activo, con el botón **Expo
 Las cuentas nuevas se crean desde el módulo de administración. Las contraseñas se guardan cifradas (SHA-256).
 Para volver al estado inicial: F12 → Application → Local Storage → borrar las claves que empiezan con `sehip_`.
 
+## Cuentas y contraseñas
+
+| Función | Dónde | Cómo funciona |
+|---|---|---|
+| **Contraseña temporal** | Pestaña Usuarios del administrador | Se genera (12 caracteres) y se “envía” a la bandeja simulada. La cuenta queda marcada para cambiarla. |
+| **Cambio obligatorio** | `contrasena.html` | Al iniciar sesión con la temporal, el sistema lleva a esta página antes de dejar usar el panel. |
+| **Cambiar contraseña** | Botón *Cambiar contraseña* del encabezado (ambos paneles) | Pide la contraseña actual, la nueva y su confirmación. |
+| **Recuperar contraseña** | Enlace *¿Olvidó su contraseña?* en ambos inicios de sesión | 1) Escribe su correo y recibe un código de 6 dígitos en la bandeja (vigente 15 minutos, 5 intentos). 2) Escribe el código y la nueva contraseña. |
+| **Administrador inicial** | `admin.html` | Esta versión ya incluye uno (admin@sehip.mx). Si no existiera ninguna cuenta protegida, admin.html mostraría el formulario de **Configuración inicial** para crearlo. |
+
+Reglas de una contraseña nueva: 8 a 16 caracteres, al menos una letra y un número, distinta de la actual y confirmada.
+
 ## Módulo de administración (RF-ADM-01 a RF-ADM-07)
 
 Acceso: **admin.html** (enlace “Acceso administrativo” en el inicio de sesión de ingenieros). Solo entran
@@ -80,8 +96,8 @@ Reglas adicionales:
 - Un cambio de rol rige desde el siguiente inicio de sesión del usuario.
 - Una cuenta desactivada no puede iniciar sesión y su sesión abierta se cierra en la siguiente acción;
   sus proyectos se conservan. La reactivación no forma parte del módulo.
-- **Correo simulado:** sin servidor no se envían correos reales. La contraseña temporal aparece en
-  `bandeja.html` (enlace “Bandeja de correo (simulación)”). Para probar la falla del correo, cambia
+- **Correo simulado:** sin servidor no se envían correos reales. La contraseña temporal y los códigos de
+  recuperación aparecen en `bandeja.html` (enlace “Bandeja de correo (simulación)”). Para probar la falla del correo, cambia
   `SIMULAR_FALLA_CORREO` a `true` en `js/datos.js`.
 
 ### Mensajes del módulo de administración

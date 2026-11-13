@@ -14,6 +14,7 @@
 
   <!-- Iconos de trazo lineal reutilizables -->
   <svg style="display:none" aria-hidden="true">
+    <symbol id="i-llave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
     <symbol id="i-gota" viewBox="0 0 24 24"><path d="M12 3.5c-3 4-6 7.3-6 10.5a6 6 0 0 0 12 0c0-3.2-3-6.5-6-10.5z"/></symbol>
     <symbol id="i-lluvia" viewBox="0 0 24 24"><path d="M7 14.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 7a3.75 3.75 0 0 1-.2 7.5H7z"/><path d="m8.5 17.5-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5"/></symbol>
     <symbol id="i-capas" viewBox="0 0 24 24"><path d="m12 3.5 8.5 4.5-8.5 4.5L3.5 8 12 3.5z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5"/><path d="m3.5 16.5 8.5 4.5 8.5-4.5"/></symbol>
@@ -51,9 +52,13 @@
           <svg class="icono"><use href="#i-usuario"/></svg>
           <span id="nombre-usuario"></span>
         </div>
+        <a class="boton boton-contorno" href="contrasena.html" title="Cambiar contraseña">
+          <svg class="icono"><use href="#i-llave"/></svg>
+          <span class="texto-boton">Cambiar contraseña</span>
+        </a>
         <button type="button" class="boton boton-contorno" id="boton-salir">
           <svg class="icono"><use href="#i-salir"/></svg>
-          <span>Cerrar sesión</span>
+          <span class="texto-boton">Cerrar sesión</span>
         </button>
       </div>
     </div>

@@ -14,6 +14,7 @@
 
   <!-- Iconos de trazo lineal reutilizables -->
   <svg style="display:none" aria-hidden="true">
+    <symbol id="i-llave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.5"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/></symbol>
     <symbol id="i-triangulo" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
@@ -45,9 +46,13 @@
           <svg class="icono"><use href="#i-escudo"/></svg>
           <span id="nombre-usuario"></span>
         </div>
+        <a class="boton boton-contorno" href="contrasena.html" title="Cambiar contraseña">
+          <svg class="icono"><use href="#i-llave"/></svg>
+          <span class="texto-boton">Cambiar contraseña</span>
+        </a>
         <button type="button" class="boton boton-contorno" id="boton-salir">
           <svg class="icono"><use href="#i-salir"/></svg>
-          <span>Cerrar sesión</span>
+          <span class="texto-boton">Cerrar sesión</span>
         </button>
       </div>
     </div>

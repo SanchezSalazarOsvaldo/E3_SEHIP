@@ -49,6 +49,10 @@ function revisarAcceso(resultado) {
     window.location.href = 'admin.html';
     return false;
   }
+  if (resultado.estado === 'cambio-obligatorio') {
+    window.location.href = 'contrasena.html';
+    return false;
+  }
   if (!resultado.ok && resultado.error === MENSAJES.accesoDenegado) {
     mostrarAccesoDenegado();
     return false;
@@ -382,6 +386,10 @@ async function iniciarAdmin() {
   if (sesion.estado === 'denegado') {
     $('nombre-usuario').textContent = sesion.usuario.nombre;
     mostrarAccesoDenegado();
+    return;
+  }
+  if (sesion.usuario.debeCambiarContrasena) {
+    window.location.href = 'contrasena.html';
     return;
   }
   estadoAdmin.usuario = sesion.usuario;

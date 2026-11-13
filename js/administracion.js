@@ -31,7 +31,39 @@ async function cerrarSesionAdmin() {
 // Verificación de rol antes de cada operación (RF-ADM-02, flujo alterno 1).
 async function exigirAdministrador() {
   const sesion = await sesionAdministrador();
-  return sesion.estado === 'ok' ? null : { ok: false, error: MENSAJES.accesoDenegado, estado: sesion.estado };
+  if (sesion.estado !== 'ok') return { ok: false, error: MENSAJES.accesoDenegado, estado: sesion.estado };
+  if (sesion.usuario.debeCambiarContrasena) {
+    return { ok: false, error: MENSAJES.cambioObligatorio, estado: 'cambio-obligatorio' };
+  }
+  return null;
+}
+
+// ---------- Configuración del administrador inicial ----------
+// Mientras no exista el administrador inicial (cuenta protegida), admin.html muestra el formulario para crearlo.
+async function estadoConfiguracionInicial() {
+  const usuarios = await obtenerUsuarios();
+  return { pendiente: !usuarios.some((u) => u.protegido) };
+}
+
+async function configurarAdministradorInicial(nombreTexto, correoTexto, contrasena, confirmacion) {
+  if (!(await estadoConfiguracionInicial()).pendiente) return { ok: false, error: MENSAJES.configuracionHecha };
+  const nombre = String(nombreTexto ?? '').trim();
+  const correo = String(correoTexto ?? '').trim();
+  const usuarios = await obtenerUsuarios();
+  const correoRepetido = usuarios.some((u) => u.correo.toLowerCase() === correo.toLowerCase());
+  if (!datosCuentaValidos(nombre, correo, ROL_ADMINISTRADOR) || correoRepetido) {
+    return { ok: false, error: MENSAJES.cuentaInvalida };
+  }
+  const errorContrasena = validarNuevaContrasena(contrasena, confirmacion);
+  if (errorContrasena) return { ok: false, error: errorContrasena };
+
+  const administrador = {
+    id: siguienteId(usuarios), nombre, correo, rol: ROL_ADMINISTRADOR, activo: true, protegido: true,
+    debeCambiarContrasena: false, contrasenaHash: await cifrarContrasena(contrasena), fechaCreacion: fechaHoraActual()
+  };
+  usuarios.push(administrador);
+  guardarUsuarios(usuarios);
+  return { ok: true, usuario: guardarSesion(administrador), mensaje: MENSAJES.administradorInicialCreado };
 }
 
 // ---------- RF-ADM-02: panel de control ----------
@@ -124,18 +156,20 @@ async function crearCuenta(nombreTexto, correoTexto, rol) {
   }
 
   const contrasenaTemporal = generarContrasenaTemporal(enterosAleatorios);
+  const acceso = rol === ROL_ADMINISTRADOR ? 'Acceso administrativo (admin.html)' : 'inicio de sesión de SEHIP';
   const enviado = enviarCorreoSimulado(
     correo,
     'SEHIP · Tu cuenta y contraseña temporal',
     `Hola ${nombre}:\n\nSe creó tu cuenta en SEHIP con el rol ${rol}.\n\n`
       + `Correo: ${correo}\nContraseña temporal: ${contrasenaTemporal}\n\n`
-      + 'Inicia sesión con estos datos.'
+      + `Ingresa por el ${acceso}. Al iniciar sesión por primera vez se te pedirá cambiar la contraseña temporal `
+      + 'por una propia.\n\nSi no esperabas este correo, ignóralo.'
   );
   // Si el correo falla, la cuenta no se crea (flujo alterno 2).
   if (!enviado) return { ok: false, error: MENSAJES.correoFallido };
 
   usuarios.push({
-    id: siguienteId(usuarios), nombre, correo, rol, activo: true, protegido: false,
+    id: siguienteId(usuarios), nombre, correo, rol, activo: true, protegido: false, debeCambiarContrasena: true,
     contrasenaHash: await cifrarContrasena(contrasenaTemporal), fechaCreacion: fechaHoraActual()
   });
   guardarUsuarios(usuarios);

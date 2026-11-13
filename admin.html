@@ -14,6 +14,7 @@
   <!-- Iconos de trazo lineal reutilizables -->
   <svg style="display:none" aria-hidden="true">
     <symbol id="i-triangulo" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.5"/></symbol>
     <symbol id="i-candado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3"/></symbol>
   </svg>
 
@@ -27,6 +28,38 @@
         </div>
       </div>
 
+      <!-- Configuración inicial: solo aparece mientras no existe el administrador inicial -->
+      <div id="bloque-configuracion" class="oculto">
+        <h1>Configuración inicial</h1>
+        <p class="subtitulo">Todavía no existe un administrador en el sistema. Registre al <strong>administrador
+          inicial</strong>: será una cuenta protegida que no puede desactivarse ni cambiar de rol.</p>
+        <form id="form-configuracion" class="formulario" novalidate>
+          <div class="campo">
+            <label for="config-nombre">Nombre completo</label>
+            <input type="text" id="config-nombre" placeholder="Ej. Administrador SEHIP">
+          </div>
+          <div class="campo">
+            <label for="config-correo">Correo electrónico</label>
+            <input type="email" id="config-correo" placeholder="administrador@dominio.com" autocomplete="username">
+          </div>
+          <div class="campo">
+            <label for="config-contrasena">Contraseña</label>
+            <input type="password" id="config-contrasena" autocomplete="new-password">
+            <span class="ayuda">De 8 a 16 caracteres, con al menos una letra y un número.</span>
+          </div>
+          <div class="campo">
+            <label for="config-confirmacion">Confirmar contraseña</label>
+            <input type="password" id="config-confirmacion" autocomplete="new-password">
+          </div>
+          <button type="submit" class="boton boton-ancho">
+            <svg class="icono"><use href="#i-candado"/></svg>
+            Crear administrador inicial
+          </button>
+        </form>
+        <div id="mensaje-configuracion"></div>
+      </div>
+
+      <div id="bloque-login">
       <h1>Acceso administrativo</h1>
       <p class="subtitulo">Módulo Web de Administración del Sistema.</p>
 
@@ -45,10 +78,12 @@
           Iniciar sesión
         </button>
       </form>
+      <p class="enlace-recuperar"><a href="recuperar.html?origen=admin">¿Olvidó su contraseña?</a></p>
 
       <div id="mensaje-login" class="alerta alerta-error oculto" role="alert">
         <svg class="icono"><use href="#i-triangulo"/></svg>
         <span></span>
+      </div>
       </div>
     </div>
     <p class="pie-login"><a href="index.html">Acceso de ingenieros civiles</a> · <a href="bandeja.html">Bandeja de correo (simulación)</a><br>SEHIP · Equipo 3 · Versión 1.0</p>

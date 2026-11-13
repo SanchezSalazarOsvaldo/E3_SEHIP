@@ -14,7 +14,8 @@ formulario.addEventListener('submit', async (evento) => {
   const resultado = await iniciarSesion(formulario.correo.value, formulario.contrasena.value);
 
   if (resultado.ok) {
-    window.location.href = 'panel.html';
+    // Con contraseña temporal, primero se pide cambiarla.
+    window.location.href = resultado.usuario.debeCambiarContrasena ? 'contrasena.html' : 'panel.html';
     return;
   }
   caja.querySelector('span').textContent = resultado.error;

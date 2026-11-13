@@ -1017,6 +1017,10 @@ async function iniciarPanel() {
     window.location.href = 'index.html';
     return;
   }
+  if (estado.usuario.debeCambiarContrasena) {
+    window.location.href = 'contrasena.html';
+    return;
+  }
   $('nombre-usuario').textContent = estado.usuario.nombre;
 
   estado.alcaldias = await obtenerAlcaldias();

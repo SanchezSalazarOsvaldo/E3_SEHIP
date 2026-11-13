@@ -143,15 +143,21 @@ function guardarUsuarios(usuarios) {
 }
 
 // ---------- Sesión ----------
-// La sesión guarda id, nombre, correo y el rol con el que se inició (un cambio de rol rige desde
-// el siguiente inicio de sesión, RF-ADM-06).
+// La sesión guarda id, nombre, correo, el rol con el que se inició (un cambio de rol rige desde
+// el siguiente inicio de sesión, RF-ADM-06) y si la contraseña es temporal y debe cambiarse.
 
 function leerSesion() {
   return JSON.parse(sessionStorage.getItem(CLAVE_SESION) || 'null');
 }
 
 function guardarSesion(usuario) {
-  const sesion = { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: usuario.rol };
+  const sesion = {
+    id: usuario.id,
+    nombre: usuario.nombre,
+    correo: usuario.correo,
+    rol: usuario.rol,
+    debeCambiarContrasena: usuario.debeCambiarContrasena === true
+  };
   sessionStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
   return sesion;
 }
@@ -160,8 +166,8 @@ function cerrarSesion() {
   sessionStorage.removeItem(CLAVE_SESION);
 }
 
-// Sesión vigente si la cuenta sigue activa y el rol de la sesión es el requerido; si la cuenta fue
-// desactivada (RF-ADM-07), la sesión se cierra.
+// Sesión vigente si la cuenta sigue activa y el rol de la sesión es el requerido (rol = null acepta
+// cualquier rol); si la cuenta fue desactivada (RF-ADM-07), la sesión se cierra.
 async function sesionConRol(rol) {
   const sesion = leerSesion();
   if (!sesion) return { estado: 'sin-sesion' };
@@ -170,8 +176,9 @@ async function sesionConRol(rol) {
     cerrarSesion();
     return { estado: 'sin-sesion' };
   }
-  if (sesion.rol !== rol) return { estado: 'denegado', usuario: sesion };
-  return { estado: 'ok', usuario: sesion };
+  const vigente = { ...sesion, debeCambiarContrasena: usuario.debeCambiarContrasena === true };
+  if (rol && vigente.rol !== rol) return { estado: 'denegado', usuario: vigente };
+  return { estado: 'ok', usuario: vigente };
 }
 
 // ---------- Bandeja de correo simulada ----------

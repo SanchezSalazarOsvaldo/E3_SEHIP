@@ -62,7 +62,22 @@ const MENSAJES = {
   cuentaDesactivada: 'La cuenta fue desactivada; ya no podrá iniciar sesión y su historial se conserva',
   // RF-WEB-08
   reporteIncompleto: 'Debe completar todos los cálculos antes de exportar',
-  reporteFallido: 'No fue posible generar el reporte técnico'
+  reporteFallido: 'No fue posible generar el reporte técnico',
+  // Cuenta: cambio y recuperación de contraseña
+  contrasenaActualIncorrecta: 'La contraseña actual es incorrecta',
+  contrasenaNuevaInvalida: 'La nueva contraseña debe tener entre 8 y 16 caracteres e incluir al menos una letra y un número',
+  contrasenaNoCoincide: 'La confirmación no coincide con la nueva contraseña',
+  contrasenaRepetida: 'La nueva contraseña debe ser diferente de la actual',
+  contrasenaActualizada: 'Contraseña actualizada correctamente',
+  cambioObligatorio: 'Debe cambiar la contraseña temporal antes de continuar',
+  correoInvalido: 'Ingrese un correo electrónico válido',
+  codigoEnviado: 'Si el correo pertenece a una cuenta activa, recibirá un código de verificación de 6 dígitos válido por 15 minutos',
+  codigoFallido: 'No fue posible enviar el código de verificación; intente más tarde',
+  codigoInvalido: 'El código de verificación es incorrecto o ya expiró',
+  contrasenaRestablecida: 'Contraseña restablecida. Ya puede iniciar sesión con su nueva contraseña',
+  // Configuración del administrador inicial
+  configuracionHecha: 'El administrador inicial ya fue configurado',
+  administradorInicialCreado: 'Administrador inicial creado. Bienvenido a SEHIP'
 };
 
 // Semáforo de impacto pluvial: relación entre el caudal resultante y la capacidad de descarga permitida.
@@ -324,6 +339,34 @@ function generarContrasenaTemporal(obtenerAleatorios) {
   return caracteres.join('');
 }
 
+// ---------- Cambio y recuperación de contraseña ----------
+const MINUTOS_VIGENCIA_CODIGO = 15;
+const INTENTOS_MAXIMOS_CODIGO = 5;
+
+// Una contraseña nueva cumple el rango de 8 a 16 caracteres e incluye al menos una letra y un número.
+function contrasenaSegura(contrasena) {
+  const texto = String(contrasena ?? '');
+  return texto.length >= 8 && texto.length <= 16 && /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(texto) && /\d/.test(texto);
+}
+
+// Mensaje de error de la nueva contraseña o null si es válida. actual = null cuando no se conoce
+// (recuperación por código).
+function validarNuevaContrasena(nueva, confirmacion, actual = null) {
+  if (!contrasenaSegura(nueva)) return MENSAJES.contrasenaNuevaInvalida;
+  if (nueva !== confirmacion) return MENSAJES.contrasenaNoCoincide;
+  if (actual !== null && nueva === actual) return MENSAJES.contrasenaRepetida;
+  return null;
+}
+
+// Código de recuperación de 6 dígitos; obtenerAleatorios(n) devuelve n enteros aleatorios.
+function generarCodigoRecuperacion(obtenerAleatorios) {
+  return obtenerAleatorios(6).map((n) => n % 10).join('');
+}
+
+function codigoRecuperacionValido(codigo) {
+  return /^\d{6}$/.test(String(codigo ?? '').trim());
+}
+
 // ---------- RF-ADM-05: búsqueda de usuarios ----------
 function busquedaValida(texto) {
   return typeof texto === 'string' && texto.length >= 1 && texto.length <= 50;
@@ -357,7 +400,9 @@ function datosCompletosParaReporte(proyecto) {
 if (typeof module !== 'undefined') {
   module.exports = {
     PERIODOS_RETORNO, TIPOS_OBRA, MENSAJES, ROL_INGENIERO, ROL_ADMINISTRADOR, ROLES,
-    correoValido, validarValorParametro, datosCuentaValidos, generarContrasenaTemporal, busquedaValida, usuarioCoincide, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
+    correoValido, validarValorParametro, datosCuentaValidos, generarContrasenaTemporal,
+    MINUTOS_VIGENCIA_CODIGO, INTENTOS_MAXIMOS_CODIGO, contrasenaSegura, validarNuevaContrasena,
+    generarCodigoRecuperacion, codigoRecuperacionValido, busquedaValida, usuarioCoincide, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
     coordenadasValidas, limitesSemaforo, evaluarSemaforo, capacidadNecesaria,
     LAMINA_ENCHARCAMIENTO, distanciaMetros, volumenExcedente, radioAfectacion, eficienciaPorUbicacion,
     distanciaParaEficiencia,
