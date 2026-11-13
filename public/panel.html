@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEHIP · Simulación Hidrológica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <!-- Iconos de trazo lineal reutilizables -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="i-llave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
+    <symbol id="i-gota" viewBox="0 0 24 24"><path d="M12 3.5c-3 4-6 7.3-6 10.5a6 6 0 0 0 12 0c0-3.2-3-6.5-6-10.5z"/></symbol>
+    <symbol id="i-lluvia" viewBox="0 0 24 24"><path d="M7 14.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 7a3.75 3.75 0 0 1-.2 7.5H7z"/><path d="m8.5 17.5-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5"/></symbol>
+    <symbol id="i-capas" viewBox="0 0 24 24"><path d="m12 3.5 8.5 4.5-8.5 4.5L3.5 8 12 3.5z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5"/><path d="m3.5 16.5 8.5 4.5 8.5-4.5"/></symbol>
+    <symbol id="i-caudal" viewBox="0 0 24 24"><path d="M3 8.5c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/><path d="M3 13c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/><path d="M3 17.5c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/></symbol>
+    <symbol id="i-tanque" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/><path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.5h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/></symbol>
+    <symbol id="i-triangulo" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+    <symbol id="i-usuario" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.5 4-5 7.5-5s6.3 1.5 7.5 5"/></symbol>
+    <symbol id="i-salir" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="m15 16 4-4-4-4M19 12H9"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8.5 3v4M15.5 3v4"/></symbol>
+    <symbol id="i-carpeta" viewBox="0 0 24 24"><path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7z"/></symbol>
+    <symbol id="i-reloj" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-mapa" viewBox="0 0 24 24"><path d="m9 4.5-5 2v13l5-2 6 2 5-2v-13l-5 2-6-2z"/><path d="M9 4.5v13M15 6.5v13"/></symbol>
+    <symbol id="i-documento" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-10l-5-5z"/><path d="M14 3.5v5h5M9 13h6M9 16.5h6"/></symbol>
+    <symbol id="i-descarga" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></symbol>
+    <symbol id="i-grafica" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/></symbol>
+    <symbol id="i-cruz" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  </svg>
+
+  <header class="encabezado">
+    <div class="encabezado-contenido">
+      <div class="marca">
+        <div class="logo">SH</div>
+        <div>
+          <div class="marca-nombre">SEHIP</div>
+          <div class="marca-descripcion">Sistema de Evaluación Hidrológica e Impacto Pluvial</div>
+        </div>
+      </div>
+      <div class="usuario">
+        <div class="usuario-nombre">
+          <svg class="icono"><use href="#i-usuario"/></svg>
+          <span id="nombre-usuario"></span>
+        </div>
+        <a class="boton boton-contorno" href="contrasena.html" title="Cambiar contraseña">
+          <svg class="icono"><use href="#i-llave"/></svg>
+          <span class="texto-boton">Cambiar contraseña</span>
+        </a>
+        <button type="button" class="boton boton-contorno" id="boton-salir">
+          <svg class="icono"><use href="#i-salir"/></svg>
+          <span class="texto-boton">Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="titulo-pagina">
+      <h1>Simulación Hidrológica</h1>
+      <p>Registre proyectos, calcule el caudal pico con el Método Racional, simule obras de mitigación y exporte el reporte técnico.</p>
+    </div>
+
+    <!-- Barra de herramientas del proyecto activo -->
+    <div class="barra-proyecto">
+      <div class="sin-proyecto barra-vacia">
+        <svg class="icono"><use href="#i-carpeta"/></svg>
+        <span>Sin proyecto activo. Registre o seleccione uno en la pestaña <strong>Proyectos</strong>.</span>
+      </div>
+      <div class="con-proyecto barra-datos">
+        <div>
+          <div class="barra-etiqueta">Proyecto activo</div>
+          <div class="proyecto-cabecera">
+            <h2 id="p-nombre"></h2>
+            <span id="p-estado" class="chip"></span>
+          </div>
+          <div class="proyecto-datos">
+            <span id="p-id"></span>
+            <span><svg class="icono"><use href="#i-pin"/></svg><span id="p-alcaldia"></span></span>
+            <span><svg class="icono"><use href="#i-calendario"/></svg><span id="p-fecha"></span></span>
+            <span id="p-coordenadas"></span>
+            <span id="p-semaforo" class="chip-semaforo"></span>
+          </div>
+        </div>
+        <button type="button" class="boton" id="boton-exportar-barra">
+          <svg class="icono"><use href="#i-descarga"/></svg>
+          Exportar PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="espacio-trabajo">
+    <div class="zona-pestanas">
+    <!-- Pestañas -->
+    <nav class="pestanas" role="tablist">
+      <button type="button" class="pestana activa" data-pestana="proyectos" role="tab">
+        <svg class="icono"><use href="#i-carpeta"/></svg>Proyectos
+      </button>
+      <button type="button" class="pestana" data-pestana="calculo" role="tab">
+        <svg class="icono"><use href="#i-caudal"/></svg>Cálculo
+      </button>
+      <button type="button" class="pestana" data-pestana="mitigacion" role="tab">
+        <svg class="icono"><use href="#i-tanque"/></svg>Mitigación
+      </button>
+      <button type="button" class="pestana" data-pestana="reporte" role="tab">
+        <svg class="icono"><use href="#i-documento"/></svg>Reporte
+      </button>
+    </nav>
+
+    <!-- ===================== PESTAÑA: PROYECTOS (RF-WEB-02, RF-WEB-03) ===================== -->
+    <section class="panel-pestana" id="pestana-proyectos">
+      <div>
+        <div class="columna">
+          <!-- Proyecto activo: su punto se mueve arrastrando el pin o con un clic en el mapa -->
+          <section class="tarjeta con-proyecto">
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-pin"/></svg>
+                <h2>Ubicación del proyecto activo</h2>
+              </div>
+            </div>
+            <div class="caja-ubicacion lista" id="ubicacion-activa">
+              <svg class="icono"><use href="#i-pin"/></svg>
+              <span></span>
+            </div>
+            <p class="ayuda">Arrastre el pin o haga clic en otro punto del mapa para mover el proyecto. La alcaldía,
+              la intensidad de lluvia y el caudal pico se actualizan con la nueva ubicación.</p>
+            <div id="msg-ubicacion"></div>
+            <button type="button" class="boton boton-contorno boton-ancho" id="boton-nuevo-proyecto">
+              <svg class="icono"><use href="#i-mas"/></svg>
+              Nuevo proyecto
+            </button>
+          </section>
+
+          <section class="tarjeta sin-proyecto">
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-mas"/></svg>
+                <h2>Nuevo proyecto</h2>
+              </div>
+            </div>
+            <form id="form-proyecto" class="formulario" novalidate>
+              <div class="campo">
+                <label for="nombre-proyecto">Nombre del proyecto</label>
+                <input type="text" id="nombre-proyecto" name="nombre" placeholder="Ej. Conjunto habitacional Norte">
+                <span class="ayuda">De 1 a 100 caracteres.</span>
+              </div>
+              <div class="campo">
+                <label for="alcaldia">Alcaldía (ubicación)</label>
+                <select id="alcaldia" name="idAlcaldia">
+                  <option value="">Seleccione una alcaldía</option>
+                </select>
+                <span class="ayuda">Se detecta al colocar el punto en el mapa; al elegirla aquí, el punto se coloca en su centro.</span>
+              </div>
+              <div class="campo">
+                <span class="etiqueta-campo">Ubicación (punto en el mapa)</span>
+                <div class="caja-ubicacion" id="ubicacion-texto">
+                  <svg class="icono"><use href="#i-pin"/></svg>
+                  <span>Haga clic en el mapa para colocar el punto del proyecto.</span>
+                </div>
+              </div>
+              <button type="submit" class="boton boton-ancho">Guardar proyecto</button>
+            </form>
+            <div id="msg-proyecto"></div>
+          </section>
+
+          <section class="tarjeta">
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-reloj"/></svg>
+                <h2>Historial de proyectos</h2>
+              </div>
+            </div>
+            <ul id="lista-proyectos" class="lista-proyectos"></ul>
+            <div id="msg-historial"></div>
+            <div id="paginacion" class="paginacion oculto">
+              <button type="button" class="boton boton-texto" id="pagina-anterior">Anterior</button>
+              <span id="texto-pagina"></span>
+              <button type="button" class="boton boton-texto" id="pagina-siguiente">Siguiente</button>
+            </div>
+          </section>
+        </div>
+
+
+      </div>
+    </section>
+
+    <!-- ===================== PESTAÑA: CÁLCULO (RF-WEB-04 a RF-WEB-06) ===================== -->
+    <section class="panel-pestana oculto" id="pestana-calculo">
+      <div class="tarjeta estado-vacio sin-proyecto">
+        <svg class="icono"><use href="#i-carpeta"/></svg>
+        <h2>Sin proyecto activo</h2>
+        <p>Seleccione un proyecto en la pestaña Proyectos para realizar los cálculos.</p>
+        <button type="button" class="boton boton-contorno ir-proyectos">Ir a Proyectos</button>
+      </div>
+
+      <div class="con-proyecto columna">
+        <ol class="progreso-calculo" id="progreso-calculo" aria-label="Avance del cálculo"></ol>
+        <div class="tarjeta">
+          <div class="metricas">
+            <div class="metrica">
+              <div class="metrica-etiqueta">Superficie total</div>
+              <div class="metrica-valor" id="m-superficie"></div>
+              <div class="metrica-detalle" id="m-superficie-detalle"></div>
+            </div>
+            <div class="metrica">
+              <div class="metrica-etiqueta">Coeficiente C</div>
+              <div class="metrica-valor" id="m-coeficiente"></div>
+            </div>
+            <div class="metrica">
+              <div class="metrica-etiqueta">Intensidad</div>
+              <div class="metrica-valor" id="m-intensidad"></div>
+              <div class="metrica-detalle" id="m-periodo"></div>
+            </div>
+            <div class="metrica">
+              <div class="metrica-etiqueta">Caudal pico</div>
+              <div class="metrica-valor" id="m-caudal"></div>
+            </div>
+            <div class="metrica">
+              <div class="metrica-etiqueta">Descarga permitida</div>
+              <div class="metrica-valor" id="m-permitido"></div>
+            </div>
+            <div class="metrica">
+              <div class="metrica-etiqueta">Zona afectada</div>
+              <div class="metrica-valor" id="m-zona"></div>
+              <div class="metrica-detalle" id="m-zona-detalle"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pasos pasos-tres">
+          <!-- RF-WEB-04 -->
+          <section class="tarjeta paso-calculo" id="paso-coeficiente">
+            <div class="numero-paso">01</div>
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-capas"/></svg>
+                <h3>Coeficiente de escurrimiento</h3>
+              </div>
+            </div>
+            <p class="formula">Fórmula: <code>C = (Cp·Ap + Ci·Ai) / (Ap + Ai)</code></p>
+            <form id="form-coeficiente" class="formulario" novalidate>
+              <div class="campo">
+                <label for="ap">Superficie permeable (m²)</label>
+                <input type="text" inputmode="decimal" id="ap" name="superficiePermeable" placeholder="0.00">
+              </div>
+              <div class="campo">
+                <label for="ai">Superficie impermeable proyectada (m²)</label>
+                <input type="text" inputmode="decimal" id="ai" name="superficieImpermeable" placeholder="0.00">
+              </div>
+              <div id="vista-coeficiente"></div>
+              <div class="acciones"><button type="submit" class="boton">Calcular coeficiente</button></div>
+            </form>
+            <div id="msg-coeficiente"></div>
+          </section>
+
+          <!-- RF-WEB-05 -->
+          <section class="tarjeta paso-calculo" id="paso-intensidad">
+            <div class="numero-paso">02</div>
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-lluvia"/></svg>
+                <h3>Intensidad de lluvia</h3>
+              </div>
+            </div>
+            <p class="formula">Valor normativo de la alcaldía del proyecto.</p>
+            <form id="form-intensidad" class="formulario" novalidate>
+              <div class="campo">
+                <label for="periodo">Período de retorno</label>
+                <select id="periodo" name="periodoRetorno">
+                  <option value="">Seleccione un período</option>
+                  <option value="2">2 años</option>
+                  <option value="5">5 años</option>
+                  <option value="10">10 años</option>
+                  <option value="20">20 años</option>
+                  <option value="50">50 años</option>
+                </select>
+              </div>
+              <div id="grafica-intensidad"></div>
+              <div class="acciones"><button type="submit" class="boton">Consultar intensidad</button></div>
+            </form>
+            <div id="msg-intensidad"></div>
+          </section>
+
+          <!-- RF-WEB-06 -->
+          <section class="tarjeta paso-calculo" id="paso-caudal">
+            <div class="numero-paso">03</div>
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-caudal"/></svg>
+                <h3>Caudal pico (Método Racional)</h3>
+              </div>
+            </div>
+            <p class="formula">Fórmula: <code>Q = C · I · A / 360</code> (A en hectáreas, Q en m³/s)</p>
+            <div id="desarrollo-caudal"></div>
+            <form id="form-caudal" class="formulario" novalidate>
+              <div class="acciones"><button type="submit" class="boton">Calcular caudal</button></div>
+            </form>
+            <div id="msg-caudal"></div>
+          </section>
+        </div>
+
+        <section class="tarjeta">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-alerta"/></svg>
+              <h2>Semáforo de impacto pluvial (sin obra de mitigación)</h2>
+            </div>
+          </div>
+          <p class="formula">Compara el caudal pico del proyecto con la capacidad de descarga permitida
+            (<code>Cp · I · A / 360</code>): verde hasta 100 %, amarillo hasta 150 % y rojo arriba de 150 %.</p>
+          <div id="medidor-calculo"></div>
+          <div id="semaforo-calculo"></div>
+          <div class="acciones" id="accion-mitigar"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ===================== PESTAÑA: MITIGACIÓN (RF-WEB-07) ===================== -->
+    <section class="panel-pestana oculto" id="pestana-mitigacion">
+      <div class="tarjeta estado-vacio sin-proyecto">
+        <svg class="icono"><use href="#i-carpeta"/></svg>
+        <h2>Sin proyecto activo</h2>
+        <p>Seleccione un proyecto en la pestaña Proyectos para simular obras de mitigación.</p>
+        <button type="button" class="boton boton-contorno ir-proyectos">Ir a Proyectos</button>
+      </div>
+
+      <div class="con-proyecto distribucion">
+        <section class="tarjeta">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-tanque"/></svg>
+              <h2>Obra de mitigación pluvial</h2>
+            </div>
+          </div>
+          <p class="formula">Retención: <code>R = capacidad / 3,600 × eficiencia</code> · Ajustado: <code>Qpico − R</code> · Permitido: <code>Cp · I · A / 360</code></p>
+          <div class="dato-contexto">
+            <span>Caudal pico del proyecto</span>
+            <strong id="mit-caudal-pico"></strong>
+          </div>
+          <form id="form-mitigacion" class="formulario" novalidate>
+            <div class="campo">
+              <label for="tipo-obra">Tipo de obra</label>
+              <select id="tipo-obra" name="tipoObra">
+                <option value="">Seleccione una obra</option>
+                <option>Pozo de Infiltración</option>
+                <option>Tanque de Tormenta</option>
+                <option>Jardín de Lluvia</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="capacidad">Capacidad de almacenamiento (m³)</label>
+              <input type="text" inputmode="decimal" id="capacidad" name="capacidad" placeholder="0.01 a 50,000.00">
+            </div>
+            <div class="campo">
+              <span class="etiqueta-campo">Ubicación de la obra (clic en el mapa, dentro de la zona afectada)</span>
+              <div class="caja-ubicacion" id="obra-ubicacion">
+                <svg class="icono"><use href="#i-pin"/></svg>
+                <span>Haga clic en el mapa dentro del círculo de la zona afectada.</span>
+              </div>
+              <span class="ayuda">Eficiencia de la obra: 100 % junto al proyecto y 50 % en el borde de la zona afectada.</span>
+            </div>
+            <div id="vista-previa"></div>
+            <button type="submit" class="boton boton-ancho">Simular mitigación</button>
+          </form>
+          <div id="msg-mitigacion"></div>
+          <div id="recomendacion-mitigacion"></div>
+        </section>
+
+        <div class="columna">
+        <section class="tarjeta">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-alerta"/></svg>
+              <h2>Semáforo: antes y después de la obra</h2>
+            </div>
+          </div>
+          <div id="medidor-mitigacion"></div>
+          <div class="comparativo">
+            <div>
+              <div class="comparativo-titulo">Sin obra de mitigación</div>
+              <div id="semaforo-antes"></div>
+            </div>
+            <div>
+              <div class="comparativo-titulo" id="titulo-despues">Con la obra</div>
+              <div id="semaforo-despues"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tarjeta">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-reloj"/></svg>
+              <h2>Simulaciones guardadas</h2>
+            </div>
+          </div>
+          <div class="tabla-contenedor">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Fecha y hora</th>
+                  <th>Tipo de obra</th>
+                  <th class="num">Capacidad (m³)</th>
+                  <th class="num">Eficiencia</th>
+                  <th class="num">Ajustado (m³/s)</th>
+                  <th class="num">Permitido (m³/s)</th>
+                  <th>Semáforo</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-simulaciones"></tbody>
+            </table>
+          </div>
+        </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PESTAÑA: REPORTE TÉCNICO (RF-WEB-08) ===================== -->
+    <section class="panel-pestana oculto" id="pestana-reporte">
+      <div class="tarjeta estado-vacio sin-proyecto">
+        <svg class="icono"><use href="#i-carpeta"/></svg>
+        <h2>Sin proyecto activo</h2>
+        <p>Seleccione un proyecto en la pestaña Proyectos para exportar su reporte técnico.</p>
+        <button type="button" class="boton boton-contorno ir-proyectos">Ir a Proyectos</button>
+      </div>
+
+      <div class="con-proyecto distribucion">
+        <section class="tarjeta">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-documento"/></svg>
+              <h2>Exportar reporte técnico</h2>
+            </div>
+          </div>
+          <p class="formula">El PDF incluye la memoria descriptiva, las tablas de cálculo y la gráfica de caudales.</p>
+          <ul class="checklist" id="checklist-reporte"></ul>
+          <button type="button" class="boton boton-ancho" id="boton-exportar">
+            <svg class="icono"><use href="#i-descarga"/></svg>
+            Exportar PDF
+          </button>
+          <div id="msg-reporte"></div>
+        </section>
+
+        <section class="tarjeta">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-reloj"/></svg>
+              <h2>Historial de reportes</h2>
+            </div>
+          </div>
+          <ul class="lista-reportes" id="lista-reportes"></ul>
+        </section>
+      </div>
+    </section>
+    </div>
+
+    <!-- Mapa siempre visible: aquí se ve la simulación -->
+    <aside class="zona-mapa">
+      <section class="tarjeta tarjeta-mapa">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-mapa"/></svg>
+              <h2>Mapa de simulación</h2>
+            </div>
+            <span class="ayuda" id="mapa-seleccion">Haga clic dentro de la CDMX para colocar el punto</span>
+          </div>
+          <div id="mapa" class="mapa"></div>
+          <div class="mapa-instruccion" id="mapa-instruccion"></div>
+          <div class="leyenda">
+            <span><i class="ley-pin"></i>Proyecto (arrastrable)</span>
+            <span><i class="ley-predio"></i>Huella del predio</span>
+            <span><i class="ley-zona"></i>Zona afectada (color del semáforo)</span>
+            <span><i class="ley-antes"></i>Zona sin obra</span>
+            <span><i class="ley-obra"></i>Obra de mitigación</span>
+            <span><i class="ley-anillos"></i>Eficiencia de la obra (90 / 75 / 50 %)</span>
+          </div>
+        </section>
+    </aside>
+    </div>
+  </main>
+
+  <div id="snackbar" class="snackbar oculto" role="status">
+    <svg class="icono"><use href="#i-check"/></svg>
+    <span></span>
+  </div>
+
+  <script src="lib/leaflet/leaflet.js"></script>
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="js/config-mapa.js"></script>
+  <script src="js/limites-alcaldias.js"></script>
+  <script src="js/validaciones.js"></script>
+  <script src="js/proyectos.js"></script>
+  <script src="js/mapa.js"></script>
+  <script src="js/reporte.js"></script>
+  <script src="js/panel.js"></script>
+</body>
+</html>

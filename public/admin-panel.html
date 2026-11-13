@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEHIP · Administración</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <!-- Iconos de trazo lineal reutilizables -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="i-llave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/></symbol>
+    <symbol id="i-triangulo" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+    <symbol id="i-usuario" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.5 4-5 7.5-5s6.3 1.5 7.5 5"/></symbol>
+    <symbol id="i-usuarios" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.9-3 3.4-4.5 6.5-4.5s5.6 1.5 6.5 4.5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4M18 15.3c1.8.6 3 2 3.5 4.2"/></symbol>
+    <symbol id="i-salir" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="m15 16 4-4-4-4M19 12H9"/></symbol>
+    <symbol id="i-grafica" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/></symbol>
+    <symbol id="i-tabla" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></symbol>
+    <symbol id="i-mapa" viewBox="0 0 24 24"><path d="m9 4.5-5 2v13l5-2 6 2 5-2v-13l-5 2-6-2z"/><path d="M9 4.5v13M15 6.5v13"/></symbol>
+    <symbol id="i-carpeta" viewBox="0 0 24 24"><path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7z"/></symbol>
+    <symbol id="i-tanque" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/><path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></symbol>
+    <symbol id="i-gota" viewBox="0 0 24 24"><path d="M12 3.5c-3 4-6 7.3-6 10.5a6 6 0 0 0 12 0c0-3.2-3-6.5-6-10.5z"/></symbol>
+    <symbol id="i-mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3.5 5 6v5.5c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6l-7-2.5z"/></symbol>
+  </svg>
+
+  <header class="encabezado">
+    <div class="encabezado-contenido">
+      <div class="marca">
+        <div class="logo">SH</div>
+        <div>
+          <div class="marca-nombre">SEHIP · Administración</div>
+          <div class="marca-descripcion">Sistema de Evaluación Hidrológica e Impacto Pluvial</div>
+        </div>
+      </div>
+      <div class="usuario">
+        <div class="usuario-nombre">
+          <svg class="icono"><use href="#i-escudo"/></svg>
+          <span id="nombre-usuario"></span>
+        </div>
+        <a class="boton boton-contorno" href="contrasena.html" title="Cambiar contraseña">
+          <svg class="icono"><use href="#i-llave"/></svg>
+          <span class="texto-boton">Cambiar contraseña</span>
+        </a>
+        <button type="button" class="boton boton-contorno" id="boton-salir">
+          <svg class="icono"><use href="#i-salir"/></svg>
+          <span class="texto-boton">Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <!-- RF-ADM-02, flujo alterno 1: el usuario activo no es administrador -->
+    <div id="acceso-denegado" class="tarjeta estado-vacio oculto">
+      <svg class="icono"><use href="#i-escudo"/></svg>
+      <h2 id="texto-denegado"></h2>
+      <p>Inicie sesión con una cuenta con rol Administrador del Sistema.</p>
+      <a class="boton" href="admin.html">Ir al acceso administrativo</a>
+    </div>
+
+    <div id="contenido-admin" class="oculto">
+      <div class="titulo-pagina">
+        <h1>Administración del Sistema</h1>
+        <p>Consulte las métricas globales, mantenga la tabla maestra normativa y gestione las cuentas de usuario.</p>
+      </div>
+
+      <nav class="pestanas" role="tablist">
+        <button type="button" class="pestana activa" data-pestana="panel" role="tab">
+          <svg class="icono"><use href="#i-grafica"/></svg>Panel de control
+        </button>
+        <button type="button" class="pestana" data-pestana="tabla" role="tab">
+          <svg class="icono"><use href="#i-tabla"/></svg>Tabla maestra
+        </button>
+        <button type="button" class="pestana" data-pestana="usuarios" role="tab">
+          <svg class="icono"><use href="#i-usuarios"/></svg>Usuarios
+        </button>
+      </nav>
+
+      <!-- ===================== RF-ADM-02: PANEL DE CONTROL ===================== -->
+      <section class="panel-pestana" id="pestana-panel">
+        <div class="metricas-admin">
+          <div class="tarjeta metrica-admin">
+            <svg class="icono"><use href="#i-carpeta"/></svg>
+            <div>
+              <div class="metrica-etiqueta">Proyectos registrados</div>
+              <div class="metrica-grande" id="total-proyectos">–</div>
+            </div>
+          </div>
+          <div class="tarjeta metrica-admin">
+            <svg class="icono"><use href="#i-tanque"/></svg>
+            <div>
+              <div class="metrica-etiqueta">Simulaciones realizadas</div>
+              <div class="metrica-grande" id="total-simulaciones">–</div>
+            </div>
+          </div>
+          <div class="tarjeta metrica-admin">
+            <svg class="icono"><use href="#i-gota"/></svg>
+            <div>
+              <div class="metrica-etiqueta">Incidencias registradas</div>
+              <div class="metrica-grande" id="total-incidencias">–</div>
+            </div>
+          </div>
+        </div>
+
+        <section class="tarjeta">
+          <div class="tarjeta-encabezado">
+            <div class="tarjeta-titulo">
+              <svg class="icono"><use href="#i-mapa"/></svg>
+              <h2>Mapa general de incidencias de la Ciudad de México</h2>
+            </div>
+            <span class="ayuda" id="fecha-consulta"></span>
+          </div>
+          <div id="msg-panel"></div>
+          <div id="mapa-incidencias" class="mapa mapa-admin"></div>
+          <div class="leyenda">
+            <span><i class="punto punto-rojo"></i>Punto crítico de encharcamiento</span>
+            <span><i class="muestra muestra-base"></i>Alcaldía (tono más intenso = más incidencias)</span>
+          </div>
+        </section>
+      </section>
+
+      <!-- ===================== RF-ADM-03: TABLA MAESTRA ===================== -->
+      <section class="panel-pestana oculto" id="pestana-tabla">
+        <div class="distribucion">
+          <section class="tarjeta">
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-tabla"/></svg>
+                <h2>Actualizar parámetro</h2>
+              </div>
+            </div>
+            <form id="form-parametro" class="formulario" novalidate>
+              <div class="campo">
+                <label for="tipo-parametro">Parámetro</label>
+                <select id="tipo-parametro">
+                  <option value="Cp">Coeficiente de superficie permeable (Cp)</option>
+                  <option value="Ci">Coeficiente de superficie impermeable (Ci)</option>
+                  <option value="intensidad">Intensidad de lluvia</option>
+                </select>
+              </div>
+              <div class="fila-campos oculto" id="campos-intensidad">
+                <div class="campo">
+                  <label for="parametro-alcaldia">Alcaldía</label>
+                  <select id="parametro-alcaldia"></select>
+                </div>
+                <div class="campo">
+                  <label for="parametro-periodo">Período de retorno</label>
+                  <select id="parametro-periodo">
+                    <option value="2">2 años</option>
+                    <option value="5">5 años</option>
+                    <option value="10">10 años</option>
+                    <option value="20">20 años</option>
+                    <option value="50">50 años</option>
+                  </select>
+                </div>
+              </div>
+              <div class="dato-contexto">
+                <span>Valor vigente</span>
+                <strong id="valor-vigente"></strong>
+              </div>
+              <div class="campo">
+                <label for="valor-parametro">Nuevo valor</label>
+                <input type="text" inputmode="decimal" id="valor-parametro" placeholder="0.00">
+                <span class="ayuda" id="rango-parametro"></span>
+              </div>
+              <button type="submit" class="boton boton-ancho">Actualizar parámetro</button>
+            </form>
+            <div id="msg-parametro"></div>
+            <p class="ayuda nota-tabla">El nuevo valor sobrescribe al anterior y rige para los cálculos a partir de
+              este momento; los proyectos ya calculados conservan sus resultados.</p>
+          </section>
+
+          <div class="columna">
+            <section class="tarjeta">
+              <div class="tarjeta-encabezado">
+                <div class="tarjeta-titulo">
+                  <svg class="icono"><use href="#i-gota"/></svg>
+                  <h2>Coeficientes de escurrimiento</h2>
+                </div>
+              </div>
+              <div class="metricas metricas-dos">
+                <button type="button" class="metrica metrica-boton" data-tipo="Cp">
+                  <div class="metrica-etiqueta">Cp · superficie permeable</div>
+                  <div class="metrica-valor" id="valor-cp"></div>
+                </button>
+                <button type="button" class="metrica metrica-boton" data-tipo="Ci">
+                  <div class="metrica-etiqueta">Ci · superficie impermeable</div>
+                  <div class="metrica-valor" id="valor-ci"></div>
+                </button>
+              </div>
+            </section>
+
+            <section class="tarjeta">
+              <div class="tarjeta-encabezado">
+                <div class="tarjeta-titulo">
+                  <svg class="icono"><use href="#i-tabla"/></svg>
+                  <h2>Intensidades de lluvia (mm/h)</h2>
+                </div>
+                <span class="ayuda">Haga clic en un valor para editarlo</span>
+              </div>
+              <div class="tabla-contenedor">
+                <table class="tabla tabla-intensidades">
+                  <thead>
+                    <tr>
+                      <th>Alcaldía</th>
+                      <th class="num">2 años</th>
+                      <th class="num">5 años</th>
+                      <th class="num">10 años</th>
+                      <th class="num">20 años</th>
+                      <th class="num">50 años</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-intensidades"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== RF-ADM-04 a RF-ADM-07: USUARIOS ===================== -->
+      <section class="panel-pestana oculto" id="pestana-usuarios">
+        <div class="columna">
+          <section class="tarjeta">
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-mas"/></svg>
+                <h2>Crear cuenta</h2>
+              </div>
+            </div>
+            <form id="form-cuenta" class="formulario formulario-linea" novalidate>
+              <div class="campo">
+                <label for="cuenta-nombre">Nombre completo</label>
+                <input type="text" id="cuenta-nombre" placeholder="1 a 100 caracteres">
+              </div>
+              <div class="campo">
+                <label for="cuenta-correo">Correo electrónico</label>
+                <input type="email" id="cuenta-correo" placeholder="usuario@dominio.com">
+              </div>
+              <div class="campo">
+                <label for="cuenta-rol">Rol inicial</label>
+                <select id="cuenta-rol">
+                  <option value="">Seleccione un rol</option>
+                  <option>Ingeniero Civil</option>
+                  <option>Administrador del Sistema</option>
+                </select>
+              </div>
+              <button type="submit" class="boton boton-ancho">Registrar usuario</button>
+            </form>
+            <div id="msg-cuenta"></div>
+            <p class="ayuda nota-tabla">La cuenta se crea activa y el sistema envía una contraseña temporal
+              de 12 caracteres al correo registrado.</p>
+          </section>
+
+          <section class="tarjeta">
+            <div class="tarjeta-encabezado">
+              <div class="tarjeta-titulo">
+                <svg class="icono"><use href="#i-usuarios"/></svg>
+                <h2>Usuarios</h2>
+              </div>
+              <span class="ayuda" id="conteo-usuarios"></span>
+            </div>
+            <form id="form-buscar" class="barra-busqueda" novalidate>
+              <div class="campo">
+                <label for="texto-buscar" class="oculto-visual">Buscar usuarios</label>
+                <input type="text" id="texto-buscar" placeholder="Buscar por nombre, correo o rol">
+              </div>
+              <button type="submit" class="boton">
+                <svg class="icono"><use href="#i-buscar"/></svg>Filtrar
+              </button>
+              <button type="button" class="boton boton-contorno" id="boton-todos">Mostrar todos</button>
+            </form>
+            <div id="msg-usuarios"></div>
+            <div class="tabla-contenedor">
+              <table class="tabla tabla-usuarios">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Correo electrónico</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-usuarios"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="snackbar" class="snackbar oculto" role="status">
+    <svg class="icono"><use href="#i-check"/></svg>
+    <span></span>
+  </div>
+
+  <script src="lib/leaflet/leaflet.js"></script>
+  <script src="js/config-mapa.js"></script>
+  <script src="js/limites-alcaldias.js"></script>
+  <script src="js/validaciones.js"></script>
+  <script src="js/administracion.js"></script>
+  <script src="js/admin-panel.js"></script>
+</body>
+</html>

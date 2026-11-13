@@ -1,0 +1,22 @@
+{
+  "name": "sehip-web",
+  "version": "4.0.0",
+  "description": "SEHIP - Módulos web de Simulación Hidrológica y de Administración con PostgreSQL (Supabase), desplegable en Render y Vercel",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "crear-usuario": "node scripts/crear_usuario.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "nodemailer": "^6.9.14",
+    "pg": "^8.13.1"
+  }
+}

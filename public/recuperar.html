@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEHIP · Recuperar contraseña</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body class="pagina-login">
+
+  <!-- Iconos de trazo lineal reutilizables -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="i-triangulo" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/></symbol>
+    <symbol id="i-llave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/></symbol>
+    <symbol id="i-correo" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+  </svg>
+
+  <main class="login">
+    <div class="tarjeta">
+      <div class="marca">
+        <div class="logo">SH</div>
+        <div>
+          <div class="marca-nombre">SEHIP</div>
+          <div class="marca-descripcion">Sistema de Evaluación Hidrológica e Impacto Pluvial</div>
+        </div>
+      </div>
+
+      <h1>Recuperar contraseña</h1>
+      <p class="subtitulo">Le enviaremos un código de verificación a su correo para crear una contraseña nueva.</p>
+
+      <!-- Paso 1: correo de la cuenta -->
+      <form id="form-solicitar" class="formulario" novalidate>
+        <div class="campo">
+          <label for="correo">Correo electrónico de la cuenta</label>
+          <input type="email" id="correo" placeholder="usuario@dominio.com" autocomplete="username">
+        </div>
+        <button type="submit" class="boton boton-ancho">
+          <svg class="icono"><use href="#i-correo"/></svg>
+          Enviar código
+        </button>
+      </form>
+
+      <!-- Paso 2: código recibido y nueva contraseña -->
+      <form id="form-restablecer" class="formulario oculto" novalidate>
+        <div id="aviso-codigo" class="alerta alerta-info" role="status">
+          <svg class="icono"><use href="#i-info"/></svg>
+          <span></span>
+        </div>
+        <div class="campo">
+          <label for="codigo">Código de verificación</label>
+          <input type="text" id="codigo" inputmode="numeric" maxlength="6" placeholder="6 dígitos" autocomplete="one-time-code">
+        </div>
+        <div class="campo">
+          <label for="nueva">Nueva contraseña</label>
+          <input type="password" id="nueva" autocomplete="new-password">
+          <span class="ayuda">De 8 a 16 caracteres, con al menos una letra y un número.</span>
+        </div>
+        <div class="campo">
+          <label for="confirmacion">Confirmar nueva contraseña</label>
+          <input type="password" id="confirmacion" autocomplete="new-password">
+        </div>
+        <button type="submit" class="boton boton-ancho">
+          <svg class="icono"><use href="#i-llave"/></svg>
+          Restablecer contraseña
+        </button>
+        <a href="#" id="otro-correo" class="enlace-secundario">Usar otro correo o pedir un código nuevo</a>
+      </form>
+
+      <div id="mensaje"></div>
+    </div>
+    <p class="pie-login"><a href="index.html" id="volver">Volver a iniciar sesión</a><br>SEHIP · Equipo 3 · Versión 1.0</p>
+  </main>
+
+  <script src="js/validaciones.js"></script>
+  <script src="js/cuenta.js"></script>
+  <script src="js/recuperar.js"></script>
+</body>
+</html>

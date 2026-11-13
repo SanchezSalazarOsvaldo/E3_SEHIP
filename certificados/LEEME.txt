@@ -1,0 +1,7 @@
+Coloque aquí el certificado raíz de Supabase para verificar la conexión cifrada con la base de datos.
+
+1. Supabase > Project Settings > Database > SSL Configuration > Download certificate.
+2. Guarde el archivo en esta carpeta (por ejemplo: certificados/prod-ca-2021.crt).
+3. Variable de entorno: BD_CERTIFICADO_CA=certificados/prod-ca-2021.crt
+
+El certificado es público (no es una contraseña), por eso puede subirse al repositorio.

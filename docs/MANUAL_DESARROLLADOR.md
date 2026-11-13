@@ -32,10 +32,10 @@ El fundamento de cada fórmula está en `FUNDAMENTO_CALCULOS.md`.
 |---|---|---|
 | Carpeta | `sehip-web-sin-bd/` | `sehip-web-con-bd/` |
 | Ejecución | Abrir `index.html` en el navegador | `npm start` y abrir `http://localhost:3000` |
-| Datos | `localStorage` del navegador | MySQL 8 (`base_de_datos/sehip_base_de_datos.sql`) |
+| Datos | `localStorage` del navegador | PostgreSQL / Supabase (`base_de_datos/sehip_base_de_datos.sql`) |
 | Cuentas | `localStorage` (iniciales en `USUARIOS_INICIALES` de `js/datos.js`) | Tabla `usuario` + `scripts/crear_usuario.js` |
 | Validación | JavaScript en el navegador | JavaScript en el navegador **y** en el servidor (mismo archivo) |
-| PDF guardado | Data URI en `localStorage` | Archivo en `reportes/` + fila en `reporte_pdf` |
+| PDF guardado | Data URI en `localStorage` | Columna `contenido` (BYTEA) de `reporte_pdf` |
 
 **Por qué así:** la interfaz (HTML, CSS, `panel.js`, `mapa.js`, `reporte.js`, `validaciones.js`) es idéntica
 en ambas versiones. Lo único que cambia es `js/proyectos.js`, la **capa de datos**:
@@ -44,7 +44,7 @@ en ambas versiones. Lo único que cambia es `js/proyectos.js`, la **capa de dato
 - Con BD, cada función valida el formulario y hace `fetch` a la API.
 
 Como `panel.js` llama a todas esas funciones con `await`, funciona igual con ambas (un `await` sobre un valor
-normal simplemente lo devuelve). Así se puede presentar la versión sin servidor y migrar a MySQL sin tocar la
+normal simplemente lo devuelve). Así se puede presentar la versión sin servidor y migrar a PostgreSQL sin tocar la
 interfaz.
 
 Todas las funciones de la capa de datos devuelven el mismo formato:
@@ -222,11 +222,11 @@ Se usan unidades en texto plano (m2, m3/s) porque las fuentes básicas de jsPDF 
 
 - `src/server.js`: Express, sesión en memoria (`express-session`), archivos estáticos de `public/` y
   manejador de errores. `express.json({ limit: '15mb' })` permite recibir el PDF en base64.
-- `src/db.js`: pool de conexiones `mysql2` con `decimalNumbers: true` (los DECIMAL llegan como número) y
-  `dateStrings: true` (las fechas llegan como texto `YYYY-MM-DD`).
+- `src/db.js`: pool de conexiones `pg` (PostgreSQL) con TLS; convierte NUMERIC y BIGINT a número y deja DATE y
+  TIMESTAMP como texto. Ver la sección 15.
 - `src/rutas/auth.js`: login, logout, sesión y el middleware `requiereSesion` (también verifica que la cuenta
   siga activa en cada petición).
-- `src/rutas/proyectos.js`: rutas del módulo. Convierte las filas de MySQL (snake_case) al formato del
+- `src/rutas/proyectos.js`: rutas del módulo. Convierte las filas de PostgreSQL (snake_case) al formato del
   navegador (camelCase) con `aProyecto`, `aSimulacion` y `aReporte`.
 
 ---
@@ -250,7 +250,7 @@ Se usan unidades en texto plano (m2, m3/s) porque las fuentes básicas de jsPDF 
 `tipoObra`, `capacidad` (m³), `caudalPico` (base, m³/s), `latitud`, `longitud`, `distancia` (m), `eficiencia`
 (0.5–1), `retencion` (m³/s), `caudalAjustado`, `caudalPermitido` (m³/s), `dentroDeCapacidad`, `fechaHora`.
 
-### Tablas MySQL que usa el módulo
+### Tablas que usa el módulo
 
 `rol`, `usuario`, `alcaldia`, `coeficiente_normativo`, `intensidad_lluvia`, `proyecto`,
 `simulacion_mitigacion`, `reporte_pdf`. Las restricciones `CHECK` y los triggers del script refuerzan las
@@ -354,7 +354,7 @@ navegador.
 | El mapa no muestra calles | Sin internet o proveedor caído; el mapa cambia solo de proveedor y se puede elegir otro con el botón de capas. Los límites y la simulación funcionan sin internet. |
 | “API KEY REQUIRED” en el mapa | Es de CARTO (versión anterior). Esta versión ya no lo usa. |
 | Panel en blanco en la versión con BD | Se abrió `panel.html` con doble clic; debe abrirse desde `http://localhost:3000`. |
-| “No fue posible conectar con MySQL” | Usuario o contraseña incorrectos en `src/db.js`, o MySQL apagado. |
+| “No fue posible conectar con PostgreSQL” | `DATABASE_URL` incorrecta en `.env` o el proyecto de Supabase está pausado. |
 | El caudal no se calcula | Faltan coeficiente o intensidad (ver la lista del panel del mapa). |
 | La simulación aparece “Desactualizada” | El proyecto cambió después de simular; se debe colocar y simular la obra de nuevo. |
 | No aparecen proyectos de la versión anterior (sin BD) | Cambió el formato; las claves de `localStorage` ahora terminan en `_v3`. |
@@ -465,4 +465,50 @@ también impide un segundo administrador protegido.
 | `codigo_expira` | DATETIME NULL | Vencimiento del código. |
 | `intentos_codigo` | TINYINT UNSIGNED | Intentos fallidos (máximo 5). |
 
-`base_de_datos/actualizar_cuentas.sql` agrega estas columnas a una base creada con la versión anterior.
+Las columnas forman parte de `base_de_datos/sehip_base_de_datos.sql`.
+
+## 14. Reactivar cuenta
+
+- En la tabla de usuarios, una cuenta inactiva muestra **Reactivar cuenta** en lugar de **Desactivar cuenta**
+  (`pintarUsuarios` en `admin-panel.js`, acción `reactivar`).
+- `reactivarCuenta(idUsuario)` en `administracion.js`: sin BD cambia `activo` a `true`; con BD llama a
+  `POST /api/admin/usuarios/:id/reactivar`, que valida que la cuenta exista y esté inactiva (`cuentaYaActiva`) y ejecuta
+  `UPDATE usuario SET activo = 1`.
+- La cuenta conserva contraseña, rol e historial. No pide confirmación porque no quita acceso a nadie; desactivar sí la
+  pide (segundo clic en 4 segundos).
+- Mensajes: `cuentaReactivada` y `cuentaYaActiva` en `validaciones.js`.
+
+
+## 15. Versión en la nube: PostgreSQL (Supabase), Render y Vercel
+
+La versión con base de datos usa **PostgreSQL** para poder alojarse en Supabase. La guía de despliegue y la
+explicación del cifrado están en `docs/DESPLIEGUE.md`.
+
+### Cambios respecto a MySQL
+
+| Tema | MySQL (antes) | PostgreSQL (ahora) |
+|---|---|---|
+| Parámetros | `?` | `$1, $2, ...` |
+| Resultado de `db.query` | `const [filas] = ...` | `const { rows: filas } = ...` |
+| Id insertado | `resultado.insertId` | `INSERT ... RETURNING id_...` |
+| Filas modificadas | `affectedRows` | `rowCount` |
+| Autoincremento | `AUTO_INCREMENT` | `GENERATED BY DEFAULT AS IDENTITY` |
+| Verdadero/falso | `TINYINT(1)` con 0/1 | `BOOLEAN` con TRUE/FALSE |
+| ENUM | `ENUM(...)` | `VARCHAR` + `CHECK (... IN (...))` |
+| Triggers | tres triggers con `SIGNAL` | una función PL/pgSQL `fn_proteger_administrador_inicial()` con `RAISE EXCEPTION` usada por tres triggers |
+| Errores | `ER_DUP_ENTRY`, `ER_SIGNAL_EXCEPTION` | `23505` (duplicado), `P0001` (trigger) |
+| Correo único | intercalación sin mayúsculas | índice único sobre `LOWER(correo)` y búsquedas con `LOWER(...)` |
+| Fechas | `NOW()`, `DATE_ADD` | `LOCALTIMESTAMP(0)`, `make_interval(mins => ...)`; zona horaria de la CDMX en cada conexión |
+
+### Piezas nuevas
+
+- `src/db.js`: lee `DATABASE_URL`, activa TLS (verifica el certificado si existe `BD_CERTIFICADO_CA`) y fija la
+  zona horaria `America/Mexico_City` en cada conexión.
+- `src/almacen-sesiones.js`: clase `AlmacenSesiones` (extiende `session.Store`) con `get`, `set` (INSERT ... ON
+  CONFLICT), `touch` y `destroy` sobre la tabla `sesion`; borra cada hora las sesiones vencidas. Así las sesiones
+  sobreviven a que Render duerma o reinicie el servidor.
+- `reporte_pdf.contenido` (BYTEA): el PDF se guarda en la base; la descarga lo envía con `res.send(buffer)`.
+- `src/server.js`: `trust proxy` en producción, encabezados de seguridad (HSTS, nosniff, X-Frame-Options),
+  redirección de HTTP a HTTPS, cookie `Secure` y ruta `GET /api/salud`.
+- `public/vercel.json`: reenvía `/api/*` a Render y agrega los mismos encabezados de seguridad a las páginas.
+- Row Level Security activado en todas las tablas: bloquea la API REST automática de Supabase.
