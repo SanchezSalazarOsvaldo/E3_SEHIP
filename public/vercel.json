@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:ruta*",
-      "destination": "https://TU-SERVICIO.onrender.com/api/:ruta*"
+      "destination": "https://sehip-e3.onrender.com/api/:ruta*"
     }
   ],
   "headers": [
