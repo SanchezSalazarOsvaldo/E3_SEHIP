@@ -6,6 +6,10 @@ const db = require('../db');
 const calc = require('../../public/js/validaciones');
 const { enviarCorreo } = require('../correo');
 const { cuentaHabilitada, datosSesion, sesionVigente } = require('./auth');
+const {
+  limiteInicioSesion, limiteConfiguracion, limiteCreacionCuentas,
+  responderLimite, esperaPorFallos, registrarFallo, limpiarFallos
+} = require('../limites');
 
 const router = express.Router();
 const ROL_ADMIN = calc.ROL_ADMINISTRADOR;
@@ -22,11 +26,18 @@ function fechaHoraActual() {
 
 // ---------- RF-ADM-01: inicio de sesión ----------
 // Cualquier incumplimiento (formato, correo, contraseña, rol o cuenta inactiva) devuelve el mismo mensaje.
-router.post('/login', async (req, res) => {
+// Tras varios intentos fallidos el correo o la IP quedan bloqueados unos minutos (fuerza bruta).
+router.post('/login', limiteInicioSesion, async (req, res) => {
   const datos = req.body || {};
   const correo = String(datos.correo ?? '').trim();
   const contrasena = String(datos.contrasena ?? '');
+  const cuenta = correo.toLowerCase();
+
+  const espera = esperaPorFallos(req, cuenta);
+  if (espera > 0) return responderLimite(res, espera, calc.MENSAJES.demasiadosIntentos);
+
   if (!calc.credencialesConFormatoValido(correo, contrasena)) {
+    registrarFallo(req, cuenta);
     return res.status(401).json({ error: calc.MENSAJES.adminLoginIncorrecto });
   }
   const { rows: filas } = await db.query(
@@ -41,8 +52,10 @@ router.post('/login', async (req, res) => {
   const accesoValido = u && u.rol === ROL_ADMIN && u.activo
     && await bcrypt.compare(contrasena, u.contrasena_hash);
   if (!accesoValido) {
+    registrarFallo(req, cuenta);
     return res.status(401).json({ error: calc.MENSAJES.adminLoginIncorrecto });
   }
+  limpiarFallos(cuenta);
   req.session.usuario = datosSesion(u);
   res.json({ usuario: req.session.usuario });
 });
@@ -59,7 +72,7 @@ router.get('/configuracion-inicial', async (req, res) => {
   res.json({ pendiente: !await administradorInicialExiste() });
 });
 
-router.post('/configuracion-inicial', async (req, res) => {
+router.post('/configuracion-inicial', limiteConfiguracion, async (req, res) => {
   if (await administradorInicialExiste()) {
     return res.status(409).json({ error: calc.MENSAJES.configuracionHecha });
   }
@@ -173,6 +186,10 @@ router.post('/tabla-maestra', async (req, res) => {
 
   // El valor se sobrescribe sin conservar el anterior; los proyectos ya calculados no se recalculan.
   // rowCount indica cuántas filas cambió el UPDATE (0 si la alcaldía o el período no existen).
+  if (esIntensidad && (!calc.identificadorValido(datos.idAlcaldia) || !calc.periodoValido(Number(datos.periodo)))) {
+    return res.status(400).json({ error: calc.MENSAJES.valorNoNumerico });
+  }
+
   let resultado;
   if (esIntensidad) {
     resultado = await db.query(
@@ -226,7 +243,7 @@ function textoCuentaCreada(nombre, correo, rol, temporal) {
     + 'por una propia.\n\nSi no esperabas este correo, ignóralo.';
 }
 
-router.post('/usuarios', async (req, res) => {
+router.post('/usuarios', limiteCreacionCuentas, async (req, res) => {
   const datos = req.body || {};
   const nombre = String(datos.nombre ?? '').trim();
   const correo = String(datos.correo ?? '').trim();
@@ -276,8 +293,8 @@ router.post('/usuarios', async (req, res) => {
 
 // Cuenta por identificador con su rol actual (o null si no existe).
 async function buscarCuenta(idTexto) {
+  if (!calc.identificadorValido(idTexto)) return null;
   const id = Number(idTexto);
-  if (!Number.isInteger(id) || id < 1) return null;
   const { rows: filas } = await db.query(
     `SELECT u.id_usuario, u.activo, u.protegido, r.nombre AS rol
        FROM usuario u

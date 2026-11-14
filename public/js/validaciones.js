@@ -80,7 +80,16 @@ const MENSAJES = {
   contrasenaRestablecida: 'Contraseña restablecida. Ya puede iniciar sesión con su nueva contraseña',
   // Configuración del administrador inicial
   configuracionHecha: 'El administrador inicial ya fue configurado',
-  administradorInicialCreado: 'Administrador inicial creado. Bienvenido a SEHIP'
+  administradorInicialCreado: 'Administrador inicial creado. Bienvenido a SEHIP',
+  // Protección del servidor
+  demasiadasSolicitudes: 'Demasiadas solicitudes. Espere un momento e intente de nuevo',
+  demasiadosIntentos: 'Demasiados intentos fallidos. Espere unos minutos e intente de nuevo',
+  demasiadosCodigos: 'Se enviaron demasiados códigos a este correo. Espere una hora e intente de nuevo',
+  limiteProyectos: 'Se alcanzó el límite de proyectos registrados por día. Intente de nuevo mañana',
+  limiteReportes: 'Se alcanzó el límite diario de almacenamiento de reportes. Intente de nuevo mañana',
+  solicitudMuyGrande: 'La solicitud excede el tamaño permitido',
+  solicitudInvalida: 'La solicitud no tiene un formato válido',
+  rutaNoEncontrada: 'La ruta solicitada no existe'
 };
 
 // Semáforo de impacto pluvial: relación entre el caudal resultante y la capacidad de descarga permitida.
@@ -370,6 +379,12 @@ function codigoRecuperacionValido(codigo) {
   return /^\d{6}$/.test(String(codigo ?? '').trim());
 }
 
+// Identificador numérico de un registro: entero entre 1 y 2,147,483,647 (máximo del tipo INTEGER).
+function identificadorValido(valor) {
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero >= 1 && numero <= 2147483647;
+}
+
 // ---------- RF-ADM-05: búsqueda de usuarios ----------
 function busquedaValida(texto) {
   return typeof texto === 'string' && texto.length >= 1 && texto.length <= 50;
@@ -405,7 +420,7 @@ if (typeof module !== 'undefined') {
     PERIODOS_RETORNO, TIPOS_OBRA, MENSAJES, ROL_INGENIERO, ROL_ADMINISTRADOR, ROLES,
     correoValido, validarValorParametro, datosCuentaValidos, generarContrasenaTemporal,
     MINUTOS_VIGENCIA_CODIGO, INTENTOS_MAXIMOS_CODIGO, contrasenaSegura, validarNuevaContrasena,
-    generarCodigoRecuperacion, codigoRecuperacionValido, busquedaValida, usuarioCoincide, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
+    generarCodigoRecuperacion, codigoRecuperacionValido, identificadorValido, busquedaValida, usuarioCoincide, TAMANO_MAXIMO_REPORTE, UMBRALES_SEMAFORO, NIVELES_SEMAFORO,
     coordenadasValidas, limitesSemaforo, evaluarSemaforo, capacidadNecesaria,
     LAMINA_ENCHARCAMIENTO, distanciaMetros, volumenExcedente, radioAfectacion, eficienciaPorUbicacion,
     distanciaParaEficiencia,

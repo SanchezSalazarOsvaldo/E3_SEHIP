@@ -8,6 +8,10 @@ const { alcaldiaEnPunto } = require('../../public/js/limites-alcaldias');
 const router = express.Router();
 const PROYECTOS_POR_PAGINA = 10;
 
+// Límites diarios por cuenta para que el almacenamiento de la base de datos no pueda llenarse.
+const PROYECTOS_POR_DIA = 100;
+const BYTES_REPORTES_POR_DIA = 25 * 1024 * 1024;   // 25 MB de reportes PDF por día
+
 // Todas las rutas de este archivo requieren una sesión activa.
 router.use(requiereSesion);
 
@@ -68,8 +72,8 @@ function aReporte(f) {
 
 // Fila del proyecto solo si pertenece al usuario activo.
 async function buscarProyectoPropio(idTexto, idUsuario) {
+  if (!calc.identificadorValido(idTexto)) return null;
   const id = Number(idTexto);
-  if (!Number.isInteger(id) || id < 1) return null;
 
   const { rows: filas } = await db.query(
     `SELECT p.*, a.nombre AS alcaldia
@@ -149,6 +153,9 @@ router.get('/coeficientes', async (req, res) => {
 
 // Intensidades normativas de una alcaldía para los cinco períodos de retorno (null = pendiente de capturar).
 router.get('/alcaldias/:id/intensidades', async (req, res) => {
+  if (!calc.identificadorValido(req.params.id)) {
+    return res.status(400).json({ error: calc.MENSAJES.periodoInvalido });
+  }
   const { rows: filas } = await db.query(
     'SELECT periodo_retorno, intensidad_mm_h FROM intensidad_lluvia WHERE id_alcaldia = $1 ORDER BY periodo_retorno',
     [Number(req.params.id)]
@@ -211,6 +218,14 @@ router.post('/proyectos', async (req, res) => {
   }
   const latitud = Number(Number(datos.latitud).toFixed(6));
   const longitud = Number(Number(datos.longitud).toFixed(6));
+
+  const { rows: hoy } = await db.query(
+    'SELECT COUNT(*) AS total FROM proyecto WHERE id_usuario = $1 AND fecha_creacion = CURRENT_DATE',
+    [req.session.usuario.id]
+  );
+  if (hoy[0].total >= PROYECTOS_POR_DIA) {
+    return res.status(429).json({ error: calc.MENSAJES.limiteProyectos });
+  }
 
   // fecha_creacion y estado ('En proceso') toman su valor por defecto en la base de datos.
   // RETURNING devuelve el identificador que asignó la base de datos.
@@ -422,6 +437,18 @@ router.post('/proyectos/:id/reportes', cargarProyecto, async (req, res) => {
     return res.status(400).json({ error: calc.MENSAJES.reporteFallido });
   }
 
+  // Suma de los reportes guardados por el usuario en las últimas 24 horas.
+  const { rows: usados } = await db.query(
+    `SELECT COALESCE(SUM(r.tamano_bytes), 0) AS total
+       FROM reporte_pdf r
+       JOIN proyecto p ON p.id_proyecto = r.id_proyecto
+      WHERE p.id_usuario = $1 AND r.fecha_generacion > LOCALTIMESTAMP - INTERVAL '1 day'`,
+    [req.session.usuario.id]
+  );
+  if (usados[0].total + contenido.length > BYTES_REPORTES_POR_DIA) {
+    return res.status(429).json({ error: calc.MENSAJES.limiteReportes });
+  }
+
   const p = req.fila;
   const nombreArchivo = String(datos.nombreArchivo || `SEHIP_Reporte_Proyecto_${p.id_proyecto}.pdf`)
     .replace(/[^\w.-]/g, '_')
@@ -438,6 +465,9 @@ router.post('/proyectos/:id/reportes', cargarProyecto, async (req, res) => {
 
 // Descarga de un reporte del historial (solo si el proyecto pertenece al usuario activo).
 router.get('/reportes/:id/descargar', async (req, res) => {
+  if (!calc.identificadorValido(req.params.id)) {
+    return res.status(404).json({ error: calc.MENSAJES.proyectoNoEncontrado });
+  }
   const { rows: filas } = await db.query(
     `SELECT r.nombre_archivo, r.contenido
        FROM reporte_pdf r

@@ -37,6 +37,7 @@ const pool = new Pool({
   max: 5,
   connectionTimeoutMillis: 10000
 });
+
 // Un error en una conexión inactiva (por ejemplo, la base se reinició) no detiene el servidor.
 pool.on('error', (error) => console.error('Error en la conexión con PostgreSQL:', error.message));
 

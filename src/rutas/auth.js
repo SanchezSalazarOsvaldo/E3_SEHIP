@@ -3,17 +3,26 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { MENSAJES, ROL_INGENIERO, credencialesConFormatoValido } = require('../../public/js/validaciones');
+const {
+  limiteInicioSesion, responderLimite, esperaPorFallos, registrarFallo, limpiarFallos
+} = require('../limites');
 
 const router = express.Router();
 
 // Inicio de sesión: valida formato, existencia del correo, contraseña, cuenta activa y rol.
 // Cualquier incumplimiento devuelve el mismo mensaje para no revelar la causa.
-router.post('/login', async (req, res) => {
+// Tras varios intentos fallidos el correo o la IP quedan bloqueados unos minutos (fuerza bruta).
+router.post('/login', limiteInicioSesion, async (req, res) => {
   const datos = req.body || {};
   const correo = String(datos.correo ?? '').trim();
   const contrasena = String(datos.contrasena ?? '');
+  const cuenta = correo.toLowerCase();
+
+  const espera = esperaPorFallos(req, cuenta);
+  if (espera > 0) return responderLimite(res, espera, MENSAJES.demasiadosIntentos);
 
   if (!credencialesConFormatoValido(correo, contrasena)) {
+    registrarFallo(req, cuenta);
     return res.status(401).json({ error: MENSAJES.loginIncorrecto });
   }
 
@@ -33,9 +42,11 @@ router.post('/login', async (req, res) => {
     && await bcrypt.compare(contrasena, usuario.contrasena_hash);
 
   if (!accesoValido) {
+    registrarFallo(req, cuenta);
     return res.status(401).json({ error: MENSAJES.loginIncorrecto });
   }
 
+  limpiarFallos(cuenta);
   req.session.usuario = datosSesion(usuario);
   res.json({ usuario: req.session.usuario });
 });

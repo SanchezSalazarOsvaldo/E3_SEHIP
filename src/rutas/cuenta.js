@@ -5,13 +5,17 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const calc = require('../../public/js/validaciones');
 const { enviarCorreo } = require('../correo');
+const {
+  limiteSolicitudCodigo, limiteRestablecer, codigosPorCorreo,
+  responderLimite, esperaPorFallos, registrarFallo, limpiarFallos
+} = require('../limites');
 
 const router = express.Router();
 const aleatorios = (n) => Array.from(crypto.randomBytes(n));
 
 // ---------- Cambio de contraseña ----------
 // Exige sesión con cuenta activa. Se usa por voluntad del usuario o de forma obligatoria cuando la
-// contraseña es temporal (debe_cambiar_contrasena = 1).
+// contraseña es temporal (debe_cambiar_contrasena = TRUE).
 router.post('/contrasena', async (req, res) => {
   const usuario = req.session.usuario;
   if (!usuario) return res.status(401).json({ error: 'Debe iniciar sesión' });
@@ -29,9 +33,15 @@ router.post('/contrasena', async (req, res) => {
     req.session.destroy(() => {});
     return res.status(401).json({ error: 'Debe iniciar sesión' });
   }
+  // Intentos fallidos con la contraseña actual: mismo bloqueo que el inicio de sesión.
+  const cuenta = `id:${usuario.id}`;
+  const espera = esperaPorFallos(req, cuenta);
+  if (espera > 0) return responderLimite(res, espera, calc.MENSAJES.demasiadosIntentos);
   if (!await bcrypt.compare(actual, filas[0].contrasena_hash)) {
+    registrarFallo(req, cuenta);
     return res.status(400).json({ error: calc.MENSAJES.contrasenaActualIncorrecta });
   }
+  limpiarFallos(cuenta);
   const error = calc.validarNuevaContrasena(nueva, confirmacion, actual);
   if (error) return res.status(400).json({ error });
 
@@ -49,9 +59,14 @@ router.post('/contrasena', async (req, res) => {
 // ---------- Recuperación de contraseña, paso 1: enviar código ----------
 // La respuesta es la misma exista o no la cuenta, para no revelar qué correos están registrados.
 // El código se guarda cifrado y vence a los 15 minutos; pedir otro reemplaza al anterior.
-router.post('/recuperacion/solicitar', async (req, res) => {
+// Límites: 5 solicitudes por IP cada 15 minutos y 3 códigos por correo cada hora (protegen la cuota de
+// correos y evitan llenar el buzón de otra persona).
+router.post('/recuperacion/solicitar', limiteSolicitudCodigo, async (req, res) => {
   const correo = String((req.body || {}).correo ?? '').trim();
   if (!calc.correoValido(correo)) return res.status(400).json({ error: calc.MENSAJES.correoInvalido });
+
+  const espera = codigosPorCorreo.registrar(correo.toLowerCase());
+  if (espera > 0) return responderLimite(res, espera, calc.MENSAJES.demasiadosCodigos);
 
   const { rows: filas } = await db.query(
     'SELECT id_usuario, nombre FROM usuario WHERE LOWER(correo) = LOWER($1) AND activo',
@@ -89,7 +104,7 @@ router.post('/recuperacion/solicitar', async (req, res) => {
 
 // ---------- Recuperación de contraseña, paso 2: código y nueva contraseña ----------
 // Cada código admite 5 intentos; al usarse correctamente se borra.
-router.post('/recuperacion/restablecer', async (req, res) => {
+router.post('/recuperacion/restablecer', limiteRestablecer, async (req, res) => {
   const datos = req.body || {};
   const correo = String(datos.correo ?? '').trim();
   const codigo = String(datos.codigo ?? '').trim();

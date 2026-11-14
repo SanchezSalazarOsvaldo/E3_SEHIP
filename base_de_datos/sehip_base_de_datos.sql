@@ -28,6 +28,13 @@
 --     coeficiente_normativo, punto_critico, alcaldia, usuario, rol CASCADE;
 -- DROP FUNCTION IF EXISTS fn_proteger_administrador_inicial() CASCADE;
 
+-- Zona horaria de la base: las fechas que genera (LOCALTIMESTAMP, CURRENT_DATE) quedan en hora de la CDMX.
+-- Aplica a las conexiones nuevas.
+DO $$
+BEGIN
+    EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'America/Mexico_City');
+END $$;
+
 -- ---------------------------------------------------------------------
 -- USUARIOS Y ROLES
 -- ---------------------------------------------------------------------
